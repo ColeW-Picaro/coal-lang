@@ -1,0 +1,72 @@
+Program = {Statement} ;
+
+(* Statements and Expressions *)
+Statement = Vardef | Funcdef | Block | (Expression, ";") | IfElse | 
+            | Unless | ForLoop | WhileLoop ;
+
+Expression = Funccall | (Expression, BinOp, Expression) 
+              | (UnOp, Expression) | Identifier | ("(", Expression ")");
+
+Vardef = "let", Identifier, ":",  
+          Type, ["=", Expression], (";" | block) ;
+
+Funcdef = "let", Identifier, "(", {Param}, ")", ":", Type, Block ;
+
+Param = Identifier, ":", Type ;
+
+Funccall = Identifier, "(", {Expression}, ")" ;
+
+(* Blocks *)
+Block = "do", {Statement}, "end" ;
+
+SubBlock = "do", {Statement} ;
+
+IfBlock = SubBlock, {"else if (", Expression, ")", SubBlock}, ("else", Block) | "end";
+
+(* Control Flow *)
+ForLoop = "for (", (Vardef | Expression), ";", Expression, ";", Expression, ")", Block ;
+
+WhileLoop = "while (", Expression, ")", Block ;
+
+UntilLoop = "until (", Expression, ")", Block ;
+
+IfElse = "if (", Expression, ")", IfBlock;
+
+Unless = "unless (", Expression, ")", Block ;
+
+(* Operators *)
+BinOp = "!=" | ">=" | "<=" | "==" | "&&" | "||" | "<" | ">" 
+        | "*" | "/" | "+" | "-" ;
+
+UnOp = "!", "-";
+
+(* Types *)
+Type = "Int", "Float", "String", "Bool", "Nil" ;
+
+(* Identifiers and Literals *)
+Identifier = {Alpha}, {Alpha | Number} ;
+
+Literal = Stringlit | Intlit | Floatlit | Boollit ;
+
+Stringlit = """, {Alpha}, """ ;
+
+Intlit = NonzeroDigit, {Digit} ;
+
+Floatlit = Intlit, ".", {NonzeroDigit} ;
+
+Boollit = "True" | "False" ;
+
+Alpha = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+      | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+      | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+      | "V" | "W" | "X" | "Y" | "Z" | "a" | "b"
+      | "c" | "d" | "e" | "f" | "g" | "h" | "i"
+      | "j" | "k" | "l" | "m" | "n" | "o" | "p"
+      | "q" | "r" | "s" | "t" | "u" | "v" | "w"
+      | "x" | "y" | "z" ;
+
+Digit = NonzeroDigit | "0" ;
+
+NonzeroDigit = "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9" ;
+
+Whitespace = {" "} ;
