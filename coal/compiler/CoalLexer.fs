@@ -48,8 +48,8 @@ type token =
   | GREATER
   | LESS
   | EQUAL
-  | LEFT_PAREN
-  | RIGHT_PAREN
+  | LPAREN
+  | RPAREN
   | COLON
   | COMMA
   | DOT
@@ -372,182 +372,182 @@ and read  lexbuf =
 # 372 "CoalLexer.fs"
           )
   | 12 -> ( 
-# 91 "CoalLexer.fsl"
-                              BOOL 
+# 92 "CoalLexer.fsl"
+                            BOOL 
 # 377 "CoalLexer.fs"
           )
   | 13 -> ( 
-# 92 "CoalLexer.fsl"
+# 93 "CoalLexer.fsl"
                               LET 
 # 382 "CoalLexer.fs"
           )
   | 14 -> ( 
-# 93 "CoalLexer.fsl"
+# 94 "CoalLexer.fsl"
                               DO 
 # 387 "CoalLexer.fs"
           )
   | 15 -> ( 
-# 94 "CoalLexer.fsl"
+# 95 "CoalLexer.fsl"
                               END 
 # 392 "CoalLexer.fs"
           )
   | 16 -> ( 
-# 95 "CoalLexer.fsl"
+# 96 "CoalLexer.fsl"
                               IF 
 # 397 "CoalLexer.fs"
           )
   | 17 -> ( 
-# 96 "CoalLexer.fsl"
+# 97 "CoalLexer.fsl"
                               FOR 
 # 402 "CoalLexer.fs"
           )
   | 18 -> ( 
-# 97 "CoalLexer.fsl"
+# 98 "CoalLexer.fsl"
                               WHILE 
 # 407 "CoalLexer.fs"
           )
   | 19 -> ( 
-# 98 "CoalLexer.fsl"
+# 99 "CoalLexer.fsl"
                               UNTIL 
 # 412 "CoalLexer.fs"
           )
   | 20 -> ( 
-# 99 "CoalLexer.fsl"
+# 100 "CoalLexer.fsl"
                               UNLESS 
 # 417 "CoalLexer.fs"
           )
   | 21 -> ( 
-# 100 "CoalLexer.fsl"
+# 101 "CoalLexer.fsl"
                               CLASS 
 # 422 "CoalLexer.fs"
           )
   | 22 -> ( 
-# 101 "CoalLexer.fsl"
+# 102 "CoalLexer.fsl"
                               SUPER 
 # 427 "CoalLexer.fs"
           )
   | 23 -> ( 
-# 102 "CoalLexer.fsl"
+# 103 "CoalLexer.fsl"
                               THIS 
 # 432 "CoalLexer.fs"
           )
   | 24 -> ( 
-# 103 "CoalLexer.fsl"
+# 104 "CoalLexer.fsl"
                               BANG_EQUAL 
 # 437 "CoalLexer.fs"
           )
   | 25 -> ( 
-# 104 "CoalLexer.fsl"
+# 105 "CoalLexer.fsl"
                               GREATER_EQUAL 
 # 442 "CoalLexer.fs"
           )
   | 26 -> ( 
-# 105 "CoalLexer.fsl"
+# 106 "CoalLexer.fsl"
                               LESS_EQUAL 
 # 447 "CoalLexer.fs"
           )
   | 27 -> ( 
-# 106 "CoalLexer.fsl"
+# 107 "CoalLexer.fsl"
                               EQUAL_EQUAL 
 # 452 "CoalLexer.fs"
           )
   | 28 -> ( 
-# 107 "CoalLexer.fsl"
+# 108 "CoalLexer.fsl"
                               AND 
 # 457 "CoalLexer.fs"
           )
   | 29 -> ( 
-# 108 "CoalLexer.fsl"
+# 109 "CoalLexer.fsl"
                               OR 
 # 462 "CoalLexer.fs"
           )
   | 30 -> ( 
-# 109 "CoalLexer.fsl"
+# 110 "CoalLexer.fsl"
                               DOT_DOT 
 # 467 "CoalLexer.fs"
           )
   | 31 -> ( 
-# 110 "CoalLexer.fsl"
+# 111 "CoalLexer.fsl"
                               BANG 
 # 472 "CoalLexer.fs"
           )
   | 32 -> ( 
-# 111 "CoalLexer.fsl"
+# 112 "CoalLexer.fsl"
                               GREATER 
 # 477 "CoalLexer.fs"
           )
   | 33 -> ( 
-# 112 "CoalLexer.fsl"
+# 113 "CoalLexer.fsl"
                               LESS 
 # 482 "CoalLexer.fs"
           )
   | 34 -> ( 
-# 113 "CoalLexer.fsl"
+# 114 "CoalLexer.fsl"
                               EQUAL 
 # 487 "CoalLexer.fs"
           )
   | 35 -> ( 
-# 114 "CoalLexer.fsl"
-                              LEFT_PAREN 
+# 115 "CoalLexer.fsl"
+                              LPAREN 
 # 492 "CoalLexer.fs"
           )
   | 36 -> ( 
-# 115 "CoalLexer.fsl"
-                              RIGHT_PAREN 
+# 116 "CoalLexer.fsl"
+                              RPAREN 
 # 497 "CoalLexer.fs"
           )
   | 37 -> ( 
-# 116 "CoalLexer.fsl"
+# 117 "CoalLexer.fsl"
                               COLON 
 # 502 "CoalLexer.fs"
           )
   | 38 -> ( 
-# 117 "CoalLexer.fsl"
+# 118 "CoalLexer.fsl"
                               COMMA 
 # 507 "CoalLexer.fs"
           )
   | 39 -> ( 
-# 118 "CoalLexer.fsl"
+# 119 "CoalLexer.fsl"
                               DOT 
 # 512 "CoalLexer.fs"
           )
   | 40 -> ( 
-# 119 "CoalLexer.fsl"
+# 120 "CoalLexer.fsl"
                               SLASH 
 # 517 "CoalLexer.fs"
           )
   | 41 -> ( 
-# 120 "CoalLexer.fsl"
+# 121 "CoalLexer.fsl"
                               STAR 
 # 522 "CoalLexer.fs"
           )
   | 42 -> ( 
-# 121 "CoalLexer.fsl"
+# 122 "CoalLexer.fsl"
                               MINUS 
 # 527 "CoalLexer.fs"
           )
   | 43 -> ( 
-# 122 "CoalLexer.fsl"
+# 123 "CoalLexer.fsl"
                               PLUS 
 # 532 "CoalLexer.fs"
           )
   | 44 -> ( 
-# 123 "CoalLexer.fsl"
+# 124 "CoalLexer.fsl"
                               SEMICOLON 
 # 537 "CoalLexer.fs"
           )
   | 45 -> ( 
-# 124 "CoalLexer.fsl"
+# 125 "CoalLexer.fsl"
                               IDENTIFIER (string (lexeme lexbuf)) 
 # 542 "CoalLexer.fs"
           )
   | 46 -> ( 
-# 125 "CoalLexer.fsl"
+# 126 "CoalLexer.fsl"
                               EOF 
 # 547 "CoalLexer.fs"
           )
   | 47 -> ( 
-# 126 "CoalLexer.fsl"
+# 127 "CoalLexer.fsl"
                        raise (Exception (sprintf "SyntaxError: Unexpected char: '%s' Line: %d Column: %d" (lexeme lexbuf) (lexbuf.StartPos.Line+1) lexbuf.StartPos.Column)) 
 # 552 "CoalLexer.fs"
           )

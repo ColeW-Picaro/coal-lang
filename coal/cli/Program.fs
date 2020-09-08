@@ -2,16 +2,8 @@
 open FSharp.Text.Lexing
 open Lexer
 
-let simpleJson = @"{
-              ""title"": ""Cities"",
-              ""cities"": [
-                { ""name"": ""Chicago"",  ""zips"": [60601,60600] },
-                { ""name"": ""New York"", ""zips"": [10001] } 
-              ]
-            }"
-
 let program = @"
-  
+  if (true) do a + b end
 "            
 
 let printToken (t : Lexer.token) = match t with
@@ -47,8 +39,8 @@ let printToken (t : Lexer.token) = match t with
   | GREATER -> printf "> "
   | LESS -> printf "< "
   | EQUAL -> printf "= "
-  | LEFT_PAREN -> printf "("
-  | RIGHT_PAREN -> printf ") "
+  | LPAREN -> printf "("
+  | RPAREN -> printf ") "
   | COLON -> printf ": "
   | COMMA -> printf ", "
   | DOT -> printf ". "

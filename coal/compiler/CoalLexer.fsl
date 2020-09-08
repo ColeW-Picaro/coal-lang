@@ -48,8 +48,8 @@ type token =
   | GREATER
   | LESS
   | EQUAL
-  | LEFT_PAREN
-  | RIGHT_PAREN
+  | LPAREN
+  | RPAREN
   | COLON
   | COMMA
   | DOT
@@ -88,7 +88,8 @@ rule read =
   | "int"    { INT }  
   | "nil"    { NIL }
   | "float"  { FLOAT }
-  | "bool"   { BOOL }
+  | 
+  "bool"   { BOOL }
   | "let"    { LET }
   | "do"     { DO }
   | "end"    { END }
@@ -111,8 +112,8 @@ rule read =
   | ">"      { GREATER }
   | "<"      { LESS }
   | "="      { EQUAL }
-  | '('      { LEFT_PAREN }
-  | ')'      { RIGHT_PAREN }
+  | '('      { LPAREN }
+  | ')'      { RPAREN }
   | ':'      { COLON }
   | ','      { COMMA }
   | '.'      { DOT }
@@ -124,3 +125,4 @@ rule read =
   | id       { IDENTIFIER (string (lexeme lexbuf)) }
   | eof      { EOF }
   | _ { raise (Exception (sprintf "SyntaxError: Unexpected char: '%s' Line: %d Column: %d" (lexeme lexbuf) (lexbuf.StartPos.Line+1) lexbuf.StartPos.Column)) }
+

@@ -1,0 +1,72 @@
+%{
+open Ast
+%}
+
+// Declarations
+%start start
+%token <System.String> IDENTIFIER
+%token <System.Int32> INT_LIT
+%token <System.Double> FLOAT_LIT
+%token <System.Boolean> BOOL_LIT
+%token LPAREN RPAREN WHILE FOR UNTIL DO END IF THEN ELSE UNLESS EOF
+%token NIL STRING INT FLOAT BOOL LET CLASS SUPER THIS
+%token BANG_EQUAL GREATER_EQUAL LESS_EQUAL EQUAL_EQUAL AND OR DOT_DOT BANG GREATER LESS EQUAL
+%token COLON COMMA DOT SLASH STAR MINUS PLUS SEMICOLON
+%type <Ast.Prog> start
+
+%%
+// Rules
+
+start: Prog {  $1 }
+
+
+Prog: StmtList EOF { Prog(List.rev($1)) }
+
+
+Expr: IDENTIFIER { Val($1) }
+    | INT_LIT {  Int($1)  }
+    | FLOAT_LIT {  Float($1)  }
+    | STRING_LIT { String($1) }
+    | Expr BinOp Expr { $1 $2 $3 }
+    | LPAREN Expr RPAREN { $2 } 
+
+
+Stmt: ID EQUAL Expr { Assign($1,$3) }
+    | WHILE LPAREN Expr RPAREN DO Stmt { While($2,$4) }
+    | DO StmtList END { Seq(List.rev($2)) }
+    | IF LPAREN Expr RPAREN Block { IfThen($2,$4) }
+    | IF LPAREN Expr RPAREN DO StmtList ELSE StmtList { IfThenElse($2,$4,$6) }    
+
+Vardef: LET IDENTIFIER COLON TYPE SEMICOLON 
+      | LET IDENTIFIER COLON TYPE EQUAL Expr
+      | LET IDENTIFIER COLON TYPE EQUAL Block
+
+Block: DO StmtList END
+
+StmtList: Stmt { [$1] }
+        | StmtList Stmt { $3 :: $1  }
+
+Type: STRING
+    | INT
+    | FLOAT
+    | BOOL
+    | NIL    
+
+BinOp: BANG_EQUAL 
+     | GREATER_EQUAL 
+     | LESS_EQUAL 
+     | EQUAL_EQUAL
+     | AND
+     | OR
+     | LESS
+     | GREATER
+     | STAR
+     | SLASH
+     | PLUS
+     | MINUS
+
+UnOp: BANG
+    | MINUS
+
+
+
