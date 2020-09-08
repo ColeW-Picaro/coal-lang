@@ -1,10 +1,12 @@
+module Ast
+
 type Type =
   | Int of int
   | Bool of bool
   | Float of double
-  | String of String
+  | String of string
 
-type Formal =  Formal of string * type
+type Formal =  Formal of string * Type
 
 type Expr = 
  | Val of string 
