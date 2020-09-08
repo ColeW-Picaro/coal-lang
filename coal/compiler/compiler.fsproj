@@ -20,6 +20,10 @@
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>    
     <Compile Include="CoalLexer.fs" />
+    <FsYacc Include="Parser.fsy">
+      <OtherFlags>module Parser -v</OtherFlags>
+    </FsYacc>
+    <Compile Include="CoalParser.fs" />
   </ItemGroup>
 
   <ItemGroup>

@@ -31,6 +31,7 @@ type token =
   | END
   | IF
   | FOR
+  | IN
   | WHILE
   | UNTIL
   | UNLESS
@@ -41,6 +42,8 @@ type token =
   | GREATER_EQUAL
   | LESS_EQUAL
   | EQUAL_EQUAL
+  | PLUS_PLUS
+  | MINUS_MINUS
   | AND
   | OR
   | DOT_DOT
@@ -84,17 +87,17 @@ rule read =
   | str      { STRING_LIT (string (lexeme lexbuf)) }
   | "true"   { BOOL_LIT (true) }
   | "false"  { BOOL_LIT (false) }  
-  | "string" { STRING }  
+  | "string" { STRING }    
   | "int"    { INT }  
   | "nil"    { NIL }
   | "float"  { FLOAT }
-  | 
-  "bool"   { BOOL }
+  | "bool"   { BOOL }
   | "let"    { LET }
   | "do"     { DO }
   | "end"    { END }
   | "if"     { IF }
-  | "for"    { FOR }
+  | "for"    { FOR }  
+  | "in"     { IN }
   | "while"  { WHILE }
   | "until"  { UNTIL }
   | "unless" { UNLESS }

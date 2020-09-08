@@ -4,7 +4,7 @@ Program = {Statement} ;
 Statement = Vardef | Funcdef | Block | (Expression, ";") | IfElse | 
             | Unless | ForLoop | WhileLoop ;
 
-Expression = Funccall | (Expression, BinOp, Expression) 
+Expression = Funccall | (Expression, BinOp, Expression) | Literal
               | (UnOp, Expression) | Identifier | ("(", Expression ")");
 
 Vardef = "let", Identifier, ":",  
@@ -14,7 +14,7 @@ Funcdef = "let", Identifier, "(", {Param}, ")", ":", Type, Block ;
 
 Param = Identifier, ":", Type ;
 
-Funccall = Identifier, "(", {Expression}, ")" ;
+Funccall = Identifier, "(", {Expression, ","}, ")" ;
 
 (* Blocks *)
 Block = "do", {Statement}, "end" ;
@@ -38,7 +38,7 @@ Unless = "unless (", Expression, ")", Block ;
 BinOp = "!=" | ">=" | "<=" | "==" | "&&" | "||" | "<" | ">" 
         | "*" | "/" | "+" | "-" ;
 
-UnOp = "!", "-";
+UnOp = "!", "-", "++", "--";
 
 (* Types *)
 Type = "Int", "Float", "String", "Bool", "Nil" ;

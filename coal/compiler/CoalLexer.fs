@@ -31,6 +31,7 @@ type token =
   | END
   | IF
   | FOR
+  | IN
   | WHILE
   | UNTIL
   | UNLESS
@@ -41,6 +42,8 @@ type token =
   | GREATER_EQUAL
   | LESS_EQUAL
   | EQUAL_EQUAL
+  | PLUS_PLUS
+  | MINUS_MINUS
   | AND
   | OR
   | DOT_DOT
@@ -61,7 +64,7 @@ type token =
   | EOF
 
 
-# 64 "CoalLexer.fs"
+# 67 "CoalLexer.fs"
 let trans : uint16[] array = 
     [| 
     (* State 0 *)
@@ -305,251 +308,256 @@ let trans : uint16[] array =
     (* State 119 *)
      [| 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 119us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 119us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; 65535us; |];
     |] 
-let actions : uint16[] = [|4us; 0us; 1us; 1us; 40us; 3us; 43us; 4us; 45us; 45us; 4us; 47us; 45us; 45us; 45us; 45us; 45us; 45us; 45us; 45us; 45us; 45us; 45us; 31us; 32us; 33us; 34us; 47us; 47us; 35us; 36us; 37us; 38us; 41us; 44us; 45us; 46us; 47us; 45us; 29us; 28us; 27us; 26us; 25us; 24us; 45us; 45us; 45us; 21us; 45us; 45us; 45us; 45us; 45us; 20us; 45us; 19us; 45us; 45us; 45us; 18us; 14us; 45us; 13us; 45us; 45us; 12us; 45us; 10us; 45us; 16us; 9us; 45us; 45us; 45us; 45us; 22us; 45us; 45us; 45us; 8us; 45us; 45us; 45us; 17us; 45us; 45us; 11us; 45us; 45us; 7us; 45us; 45us; 45us; 23us; 45us; 6us; 5us; 65535us; 65535us; 4us; 30us; 4us; 65535us; 4us; 4us; 45us; 15us; 4us; 3us; 4us; 3us; 3us; 3us; 65535us; 2us; 2us; 65535us; 1us; 0us; |]
+let actions : uint16[] = [|4us; 0us; 1us; 1us; 41us; 3us; 44us; 4us; 46us; 46us; 4us; 48us; 46us; 46us; 46us; 46us; 46us; 46us; 46us; 46us; 46us; 46us; 46us; 32us; 33us; 34us; 35us; 48us; 48us; 36us; 37us; 38us; 39us; 42us; 45us; 46us; 47us; 48us; 46us; 30us; 29us; 28us; 27us; 26us; 25us; 46us; 46us; 46us; 22us; 46us; 46us; 46us; 46us; 46us; 21us; 46us; 20us; 46us; 46us; 46us; 19us; 14us; 46us; 13us; 46us; 46us; 12us; 46us; 10us; 18us; 16us; 9us; 46us; 46us; 46us; 46us; 23us; 46us; 46us; 46us; 8us; 46us; 46us; 46us; 17us; 46us; 46us; 11us; 46us; 46us; 7us; 46us; 46us; 46us; 24us; 46us; 6us; 5us; 65535us; 65535us; 4us; 31us; 4us; 65535us; 4us; 4us; 46us; 15us; 4us; 3us; 4us; 3us; 3us; 3us; 65535us; 2us; 2us; 65535us; 1us; 0us; |]
 let _fslex_tables = FSharp.Text.Lexing.UnicodeTables.Create(trans,actions)
 let rec _fslex_dummy () = _fslex_dummy() 
 // Rule read
 and read  lexbuf =
   match _fslex_tables.Interpret(0,lexbuf) with
   | 0 -> ( 
-# 79 "CoalLexer.fsl"
+# 82 "CoalLexer.fsl"
                               read lexbuf 
-# 317 "CoalLexer.fs"
+# 320 "CoalLexer.fs"
           )
   | 1 -> ( 
-# 80 "CoalLexer.fsl"
+# 83 "CoalLexer.fsl"
                               newline lexbuf; read lexbuf 
-# 322 "CoalLexer.fs"
+# 325 "CoalLexer.fs"
           )
   | 2 -> ( 
-# 81 "CoalLexer.fsl"
+# 84 "CoalLexer.fsl"
                               newline lexbuf; read lexbuf 
-# 327 "CoalLexer.fs"
+# 330 "CoalLexer.fs"
           )
   | 3 -> ( 
-# 82 "CoalLexer.fsl"
+# 85 "CoalLexer.fsl"
                               INT_LIT (int (lexeme lexbuf)) 
-# 332 "CoalLexer.fs"
+# 335 "CoalLexer.fs"
           )
   | 4 -> ( 
-# 83 "CoalLexer.fsl"
+# 86 "CoalLexer.fsl"
                               FLOAT_LIT (float (lexeme lexbuf)) 
-# 337 "CoalLexer.fs"
+# 340 "CoalLexer.fs"
           )
   | 5 -> ( 
-# 84 "CoalLexer.fsl"
+# 87 "CoalLexer.fsl"
                               STRING_LIT (string (lexeme lexbuf)) 
-# 342 "CoalLexer.fs"
+# 345 "CoalLexer.fs"
           )
   | 6 -> ( 
-# 85 "CoalLexer.fsl"
+# 88 "CoalLexer.fsl"
                               BOOL_LIT (true) 
-# 347 "CoalLexer.fs"
+# 350 "CoalLexer.fs"
           )
   | 7 -> ( 
-# 86 "CoalLexer.fsl"
+# 89 "CoalLexer.fsl"
                               BOOL_LIT (false) 
-# 352 "CoalLexer.fs"
+# 355 "CoalLexer.fs"
           )
   | 8 -> ( 
-# 87 "CoalLexer.fsl"
+# 90 "CoalLexer.fsl"
                               STRING 
-# 357 "CoalLexer.fs"
+# 360 "CoalLexer.fs"
           )
   | 9 -> ( 
-# 88 "CoalLexer.fsl"
+# 91 "CoalLexer.fsl"
                               INT 
-# 362 "CoalLexer.fs"
+# 365 "CoalLexer.fs"
           )
   | 10 -> ( 
-# 89 "CoalLexer.fsl"
+# 92 "CoalLexer.fsl"
                               NIL 
-# 367 "CoalLexer.fs"
+# 370 "CoalLexer.fs"
           )
   | 11 -> ( 
-# 90 "CoalLexer.fsl"
+# 93 "CoalLexer.fsl"
                               FLOAT 
-# 372 "CoalLexer.fs"
+# 375 "CoalLexer.fs"
           )
   | 12 -> ( 
-# 92 "CoalLexer.fsl"
-                            BOOL 
-# 377 "CoalLexer.fs"
+# 94 "CoalLexer.fsl"
+                              BOOL 
+# 380 "CoalLexer.fs"
           )
   | 13 -> ( 
-# 93 "CoalLexer.fsl"
+# 95 "CoalLexer.fsl"
                               LET 
-# 382 "CoalLexer.fs"
+# 385 "CoalLexer.fs"
           )
   | 14 -> ( 
-# 94 "CoalLexer.fsl"
+# 96 "CoalLexer.fsl"
                               DO 
-# 387 "CoalLexer.fs"
+# 390 "CoalLexer.fs"
           )
   | 15 -> ( 
-# 95 "CoalLexer.fsl"
+# 97 "CoalLexer.fsl"
                               END 
-# 392 "CoalLexer.fs"
+# 395 "CoalLexer.fs"
           )
   | 16 -> ( 
-# 96 "CoalLexer.fsl"
+# 98 "CoalLexer.fsl"
                               IF 
-# 397 "CoalLexer.fs"
+# 400 "CoalLexer.fs"
           )
   | 17 -> ( 
-# 97 "CoalLexer.fsl"
+# 99 "CoalLexer.fsl"
                               FOR 
-# 402 "CoalLexer.fs"
+# 405 "CoalLexer.fs"
           )
   | 18 -> ( 
-# 98 "CoalLexer.fsl"
-                              WHILE 
-# 407 "CoalLexer.fs"
+# 100 "CoalLexer.fsl"
+                              IN 
+# 410 "CoalLexer.fs"
           )
   | 19 -> ( 
-# 99 "CoalLexer.fsl"
-                              UNTIL 
-# 412 "CoalLexer.fs"
+# 101 "CoalLexer.fsl"
+                              WHILE 
+# 415 "CoalLexer.fs"
           )
   | 20 -> ( 
-# 100 "CoalLexer.fsl"
-                              UNLESS 
-# 417 "CoalLexer.fs"
+# 102 "CoalLexer.fsl"
+                              UNTIL 
+# 420 "CoalLexer.fs"
           )
   | 21 -> ( 
-# 101 "CoalLexer.fsl"
-                              CLASS 
-# 422 "CoalLexer.fs"
+# 103 "CoalLexer.fsl"
+                              UNLESS 
+# 425 "CoalLexer.fs"
           )
   | 22 -> ( 
-# 102 "CoalLexer.fsl"
-                              SUPER 
-# 427 "CoalLexer.fs"
+# 104 "CoalLexer.fsl"
+                              CLASS 
+# 430 "CoalLexer.fs"
           )
   | 23 -> ( 
-# 103 "CoalLexer.fsl"
-                              THIS 
-# 432 "CoalLexer.fs"
+# 105 "CoalLexer.fsl"
+                              SUPER 
+# 435 "CoalLexer.fs"
           )
   | 24 -> ( 
-# 104 "CoalLexer.fsl"
-                              BANG_EQUAL 
-# 437 "CoalLexer.fs"
+# 106 "CoalLexer.fsl"
+                              THIS 
+# 440 "CoalLexer.fs"
           )
   | 25 -> ( 
-# 105 "CoalLexer.fsl"
-                              GREATER_EQUAL 
-# 442 "CoalLexer.fs"
+# 107 "CoalLexer.fsl"
+                              BANG_EQUAL 
+# 445 "CoalLexer.fs"
           )
   | 26 -> ( 
-# 106 "CoalLexer.fsl"
-                              LESS_EQUAL 
-# 447 "CoalLexer.fs"
+# 108 "CoalLexer.fsl"
+                              GREATER_EQUAL 
+# 450 "CoalLexer.fs"
           )
   | 27 -> ( 
-# 107 "CoalLexer.fsl"
-                              EQUAL_EQUAL 
-# 452 "CoalLexer.fs"
+# 109 "CoalLexer.fsl"
+                              LESS_EQUAL 
+# 455 "CoalLexer.fs"
           )
   | 28 -> ( 
-# 108 "CoalLexer.fsl"
-                              AND 
-# 457 "CoalLexer.fs"
+# 110 "CoalLexer.fsl"
+                              EQUAL_EQUAL 
+# 460 "CoalLexer.fs"
           )
   | 29 -> ( 
-# 109 "CoalLexer.fsl"
-                              OR 
-# 462 "CoalLexer.fs"
+# 111 "CoalLexer.fsl"
+                              AND 
+# 465 "CoalLexer.fs"
           )
   | 30 -> ( 
-# 110 "CoalLexer.fsl"
-                              DOT_DOT 
-# 467 "CoalLexer.fs"
+# 112 "CoalLexer.fsl"
+                              OR 
+# 470 "CoalLexer.fs"
           )
   | 31 -> ( 
-# 111 "CoalLexer.fsl"
-                              BANG 
-# 472 "CoalLexer.fs"
+# 113 "CoalLexer.fsl"
+                              DOT_DOT 
+# 475 "CoalLexer.fs"
           )
   | 32 -> ( 
-# 112 "CoalLexer.fsl"
-                              GREATER 
-# 477 "CoalLexer.fs"
+# 114 "CoalLexer.fsl"
+                              BANG 
+# 480 "CoalLexer.fs"
           )
   | 33 -> ( 
-# 113 "CoalLexer.fsl"
-                              LESS 
-# 482 "CoalLexer.fs"
+# 115 "CoalLexer.fsl"
+                              GREATER 
+# 485 "CoalLexer.fs"
           )
   | 34 -> ( 
-# 114 "CoalLexer.fsl"
-                              EQUAL 
-# 487 "CoalLexer.fs"
+# 116 "CoalLexer.fsl"
+                              LESS 
+# 490 "CoalLexer.fs"
           )
   | 35 -> ( 
-# 115 "CoalLexer.fsl"
-                              LPAREN 
-# 492 "CoalLexer.fs"
+# 117 "CoalLexer.fsl"
+                              EQUAL 
+# 495 "CoalLexer.fs"
           )
   | 36 -> ( 
-# 116 "CoalLexer.fsl"
-                              RPAREN 
-# 497 "CoalLexer.fs"
+# 118 "CoalLexer.fsl"
+                              LPAREN 
+# 500 "CoalLexer.fs"
           )
   | 37 -> ( 
-# 117 "CoalLexer.fsl"
-                              COLON 
-# 502 "CoalLexer.fs"
+# 119 "CoalLexer.fsl"
+                              RPAREN 
+# 505 "CoalLexer.fs"
           )
   | 38 -> ( 
-# 118 "CoalLexer.fsl"
-                              COMMA 
-# 507 "CoalLexer.fs"
+# 120 "CoalLexer.fsl"
+                              COLON 
+# 510 "CoalLexer.fs"
           )
   | 39 -> ( 
-# 119 "CoalLexer.fsl"
-                              DOT 
-# 512 "CoalLexer.fs"
+# 121 "CoalLexer.fsl"
+                              COMMA 
+# 515 "CoalLexer.fs"
           )
   | 40 -> ( 
-# 120 "CoalLexer.fsl"
-                              SLASH 
-# 517 "CoalLexer.fs"
+# 122 "CoalLexer.fsl"
+                              DOT 
+# 520 "CoalLexer.fs"
           )
   | 41 -> ( 
-# 121 "CoalLexer.fsl"
-                              STAR 
-# 522 "CoalLexer.fs"
+# 123 "CoalLexer.fsl"
+                              SLASH 
+# 525 "CoalLexer.fs"
           )
   | 42 -> ( 
-# 122 "CoalLexer.fsl"
-                              MINUS 
-# 527 "CoalLexer.fs"
+# 124 "CoalLexer.fsl"
+                              STAR 
+# 530 "CoalLexer.fs"
           )
   | 43 -> ( 
-# 123 "CoalLexer.fsl"
-                              PLUS 
-# 532 "CoalLexer.fs"
+# 125 "CoalLexer.fsl"
+                              MINUS 
+# 535 "CoalLexer.fs"
           )
   | 44 -> ( 
-# 124 "CoalLexer.fsl"
-                              SEMICOLON 
-# 537 "CoalLexer.fs"
+# 126 "CoalLexer.fsl"
+                              PLUS 
+# 540 "CoalLexer.fs"
           )
   | 45 -> ( 
-# 125 "CoalLexer.fsl"
-                              IDENTIFIER (string (lexeme lexbuf)) 
-# 542 "CoalLexer.fs"
+# 127 "CoalLexer.fsl"
+                              SEMICOLON 
+# 545 "CoalLexer.fs"
           )
   | 46 -> ( 
-# 126 "CoalLexer.fsl"
-                              EOF 
-# 547 "CoalLexer.fs"
+# 128 "CoalLexer.fsl"
+                              IDENTIFIER (string (lexeme lexbuf)) 
+# 550 "CoalLexer.fs"
           )
   | 47 -> ( 
-# 127 "CoalLexer.fsl"
+# 129 "CoalLexer.fsl"
+                              EOF 
+# 555 "CoalLexer.fs"
+          )
+  | 48 -> ( 
+# 130 "CoalLexer.fsl"
                        raise (Exception (sprintf "SyntaxError: Unexpected char: '%s' Line: %d Column: %d" (lexeme lexbuf) (lexbuf.StartPos.Line+1) lexbuf.StartPos.Column)) 
-# 552 "CoalLexer.fs"
+# 560 "CoalLexer.fs"
           )
   | _ -> failwith "read"
 
