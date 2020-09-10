@@ -21,19 +21,24 @@ open Ast
 start: Prog {  $1 }
 
 
-Prog: StmtList EOF { Prog(List.rev($1)) }
+Prog: StmtList EOF { List.rev($1) }
 
 // Statements and Expressions
 Stmt: Vardef { $1 }
     | Funcdef { $1 }
-    | IDENTIFIER EQUAL Expr SEMICOLON { Assign($1,$3) }
-    | WHILE LPAREN BoolExpr RPAREN DO Stmt { While($3,$5) }
-    | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON BoolExpr SEMICOLON Expr RPAREN DO StmtList END { Seq [Vardef($4, $6, $8) ; While($10, $15 @ [$12])] }
+    | Assign SEMICOLON { $1 }
+    | WHILE LPAREN BoolExpr RPAREN Stmt { While($3,$5) }
+   // $1  $2     $3  $4         $5    $6   $7    $8   $9        $10      $11       $12    $13    $14
+    | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON BoolExpr SEMICOLON Expr RPAREN Stmt {
+        Seq [ Vardef (($4, $6), Some $8) ; While($10, Seq [$14 ; Expr $12] )]
+      }
     | DO StmtList END { Seq(List.rev($2)) }
-    | IF LPAREN BoolExpr RPAREN Stmt { IfThenElse($3,$5, NilStmt) }
-    | IF LPAREN BoolExpr RPAREN Stmt ELSE Stmt { IfThenElse($3,$5,$7) }
-    | UNLESS LPAREN BoolExpr RPAREN Stmt { IfThenElse($3, $5, NilStmt) }
-    | Expr SEMICOLON { $1 }
+    | IF LPAREN BoolExpr RPAREN Stmt { IfThenElse($3,$5, None) }
+    | IF LPAREN BoolExpr RPAREN Stmt ELSE Stmt { IfThenElse($3,$5, Some $7) }
+    | UNLESS LPAREN BoolExpr RPAREN Stmt { IfThenElse($3, $5, None) }
+    | Expr SEMICOLON { Expr $1 }
+
+Assign : IDENTIFIER EQUAL Expr { Assign($1,$3) }
 
 Expr: IDENTIFIER { Val($1) }
     | INT_LIT {  Int($1) }
@@ -52,53 +57,54 @@ ParamList: { [] }
 ExprList: Expr { [$1] }
         | ExprList COMMA Expr { $3 :: $1 }  
 
-Vardef: LET IDENTIFIER COLON Type SEMICOLON { Vardef($2, $4, NilStmt) }
-      | LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON { Vardef($2, $4, $6) }      
-      | LET IDENTIFIER COLON Type EQUAL Expr IN StmtList END { $8 @ [Vardef($2, $4, $6)] }
+
+Vardef: LET IDENTIFIER COLON Type SEMICOLON { Vardef(($2, $4), None) }
+      | LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON { Vardef(($2, $4), Some $6) }      
+      | LET IDENTIFIER COLON Type EQUAL Expr Stmt { Seq [Vardef(($2, $4), Some $6) ; $7] }
 
 // Functions
 
-Formal: IDENTIFIER COLON Type { Formal ($1, $3) }
+Formal: IDENTIFIER COLON Type { ($1, $3) }
 
-FuncDeclList: NilStmt {}
-        | FormalDeclList { $1 }
+FuncDeclList: { None }
+        | FormalDeclList { Some (List.rev $1) }
 
-FormalDeclList: Formal { [$1] }
+FormalDeclList: Formal { ($1)::[] }
              | FormalDeclList COMMA Formal { $3 :: $1 }
 
-Funcdef: LET IDENTIFIER LPAREN FuncDeclList RPAREN Type DO StmtList END { Funcdef($2, $4, $6, $8) }
+//           $2                $4                  $6   $7
+Funcdef: LET IDENTIFIER LPAREN FuncDeclList RPAREN Type Stmt {
+           Funcdef(($2, $6), $4, $7) }
 
 
-StmtList: {}
+StmtList: { [] }
         | StmtList Stmt { $2 :: $1  }
 
-NilStmt: {}
+Type: STRING { StringType }
+    | INT { IntType }
+    | FLOAT { FloatType }
+    | BOOL { BoolType }
+    | NIL { NilType } 
 
-Type: STRING {}
-    | INT {}
-    | FLOAT {}
-    | BOOL {}
-    | NIL {} 
+BoolOp: BANG_EQUAL { OpNotEqual }
+      | GREATER_EQUAL { OpGreaterEqual }
+      | LESS_EQUAL { OpLessEqual }
+      | EQUAL_EQUAL { OpEqual }
+      | AND { OpAnd }
+      | OR { OpOr }
+      | LESS { OpLess }
+      | GREATER { OpGreater }
 
-BoolOp: BANG_EQUAL {}
-      | GREATER_EQUAL {}
-      | LESS_EQUAL {}
-      | EQUAL_EQUAL {}
-      | AND {}
-      | OR {}
-      | LESS {}
-      | GREATER {}
+BinOp: BoolOp { $1 }
+     | STAR { OpMul }
+     | SLASH { OpDiv }
+     | PLUS { OpPlus }
+     | MINUS { OpMinus }
 
-BinOp: BoolOp {}
-     | STAR {}
-     | SLASH {}
-     | PLUS {}
-     | MINUS {}
-
-UnOp: BANG {}
-    | MINUS {}
-    | PLUS_PLUS {}
-    | MINUS_MINUS {}
+UnOp: BANG { OpBoolNegate }
+    | MINUS { OpValNegate }
+    | PLUS_PLUS { OpIncr }
+    | MINUS_MINUS { OpDecr }
 
 
 

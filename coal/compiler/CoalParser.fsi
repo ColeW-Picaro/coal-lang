@@ -105,6 +105,7 @@ type nonTerminalId =
     | NONTERM_start
     | NONTERM_Prog
     | NONTERM_Stmt
+    | NONTERM_Assign
     | NONTERM_Expr
     | NONTERM_BoolExpr
     | NONTERM_ParamList
@@ -115,7 +116,6 @@ type nonTerminalId =
     | NONTERM_FormalDeclList
     | NONTERM_Funcdef
     | NONTERM_StmtList
-    | NONTERM_NilStmt
     | NONTERM_Type
     | NONTERM_BoolOp
     | NONTERM_BinOp
