@@ -10,24 +10,23 @@
 
 
   <ItemGroup>
-    <!--Compile Include="JsonValue.fs" />
-    <FsYacc Include="Parser.fsy">
-      <OtherFlags>module Parser -v</OtherFlags>
-    </FsYacc>
-    <FsLex Include="Lexer.fsl">
-      <OtherFlags>unicode</OtherFlags>
-    </FsLex>    
-    <Compile Include="Parser.fsi" />
-    <Compile Include="Parser.fs" />
-    <Compile Include="Lexer.fs" / -->
     <Compile Include="Ast.fs" />
-    <FsLex Include="CoalLexer.fsl">
-      <OtherFlags>--unicode</OtherFlags>
-    </FsLex>    
-    <Compile Include="CoalLexer.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <FsYacc Include="CoalParser.fsy">
       <OtherFlags>--module Parser</OtherFlags>
     </FsYacc>
     <Compile Include="CoalParser.fs" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <FsLex Include="CoalLexer.fsl">
+      <OtherFlags>--unicode</OtherFlags>
+    </FsLex>    
+    <Compile Include="CoalLexer.fs" />
+  </ItemGroup>
+
+
+
 </Project>

@@ -1,30 +1,53 @@
 module Ast
 
 type Type =
-  | Int of int
-  | Bool of bool
-  | Float of double
-  | String of string
+  | IntType
+  | BoolType
+  | FloatType
+  | StringType
+  | NilType
 
-type Formal =  Formal of string * Type
+type Binary =
+  | OpNotEqual
+  | OpGreaterEqual
+  | OpLessEqual
+  | OpEqual
+  | OpAnd
+  | OpOr
+  | OpLess
+  | OpGreater
+  | OpMul
+  | OpDiv
+  | OpPlus
+  | OpMinus
+
+type Unary =
+  | OpBoolNegate
+  | OpValNegate
+  | OpIncr
+  | OpDecr
+
+type Formal =
+  | Formal of string * Type
 
 type Expr = 
- | Val of string 
- | Int of int
- | Float of double
- | String of string
- | FuncCall of string * Expr list
- | BinOp of Expr * string * Expr
- | UnOp of string * Expr
-
+  | VarRef of string 
+  | Int of int
+  | Float of double
+  | String of string
+  | Bool of bool
+  | FuncCall of string * Expr list
+  | BinOp of Expr * Binary * Expr
+  | UnOp of Unary * Expr
 
 type Stmt = 
- | Assign of string * Expr
- | While of Expr * Stmt 
- | Seq of Stmt list
- | IfThenElse of Expr * Stmt * Stmt
- | Vardef of Formal * Expr 
- | Funcdef of string * Formal list * Type * Stmt list
+  | Assign of string * Expr
+  | While of Expr * Stmt 
+  | Seq of Stmt list
+  | IfThenElse of Expr * Stmt * Stmt option
+  | Vardef of Formal * Expr option
+  | Funcdef of Formal * Formal list * Stmt
+  | Expr of Expr
 
-  
-type Prog = Prog of Stmt list
+type Prog =
+  | Prog of Stmt list
