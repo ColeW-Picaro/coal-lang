@@ -56,6 +56,7 @@ rule read =
   | "class"  { CLASS }
   | "super"  { SUPER }
   | "this"   { THIS }
+  | "return" { RETURN }
   | "!="     { BANG_EQUAL }
   | ">="     { GREATER_EQUAL }
   | "<="     { LESS_EQUAL }

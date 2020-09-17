@@ -31,7 +31,7 @@ type Formal =
   | Formal of string * Type
 
 type Expr = 
-  | VarRef of string 
+  | VarRef of string
   | Int of int
   | Float of double
   | String of string
@@ -48,6 +48,7 @@ type Stmt =
   | Vardef of Formal * Expr option
   | Funcdef of Formal * Formal list * Stmt
   | Expr of Expr
+  | Return of Expr option
 
 type Prog =
   | Prog of Stmt list
