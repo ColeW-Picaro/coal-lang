@@ -1,13 +1,15 @@
-module Ast
+namespace CoalLang
 
-type Type =
+module Ast =
+
+  type Type =
   | IntType
   | BoolType
   | FloatType
   | StringType
   | NilType
 
-type Binary =
+  type Binary =
   | OpNotEqual
   | OpGreaterEqual
   | OpLessEqual
@@ -21,16 +23,16 @@ type Binary =
   | OpPlus
   | OpMinus
 
-type Unary =
+  type Unary =
   | OpBoolNegate
   | OpValNegate
   | OpIncr
   | OpDecr
 
-type Formal =
+  type Formal =
   | Formal of string * Type
 
-type Expr = 
+  type Expr = 
   | VarRef of string
   | Int of int
   | Float of double
@@ -40,7 +42,7 @@ type Expr =
   | BinOp of Expr * Binary * Expr
   | UnOp of Unary * Expr
 
-type Stmt = 
+  type Stmt = 
   | Assign of string * Expr
   | While of Expr * Stmt 
   | Seq of Stmt list
@@ -50,5 +52,5 @@ type Stmt =
   | Expr of Expr
   | Return of Expr option
 
-type Prog =
+  type Prog =
   | Prog of Stmt list

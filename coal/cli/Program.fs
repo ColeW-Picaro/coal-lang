@@ -2,7 +2,7 @@
 open FSharp.Text.Lexing
 open Lexer
 open Parser
-open Ast
+open CoalLang
 
 let parse (filename:string) = 
     use textReader = new System.IO.StreamReader(filename)
@@ -11,7 +11,8 @@ let parse (filename:string) =
     res
 
 [<EntryPoint>]
-let main argv =
+let main argv =    
     let tree = parse argv.[0] in
-    tree |> string |> System.Console.WriteLine
+    let Ast = new CoalLang.AstPrinter (tree)
+    // tree |> string |> System.Console.WriteLine
     0

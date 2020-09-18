@@ -1,5 +1,5 @@
 %{
-open Ast
+open CoalLang.Ast
 
 %}
 
@@ -29,7 +29,7 @@ open Ast
 %right PLUS_PLUS MINUS_MINUS
 %left BANG
 
-%type <Ast.Prog> start
+%type <CoalLang.Ast.Prog> start
 
 %%
 // Rules

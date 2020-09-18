@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\compiler\compiler.fsproj" />
+    <ProjectReference Include="..\ast\ast.csproj" />
   </ItemGroup>
 
 </Project>
