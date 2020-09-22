@@ -13,6 +13,6 @@ let parse (filename:string) =
 [<EntryPoint>]
 let main argv =    
     let tree = parse argv.[0] in
-    let Ast = CoalLang.SymbolTable (tree)
+    let ast = CoalLang.SymbolTable (tree)
     // tree |> string |> System.Console.WriteLine
     0

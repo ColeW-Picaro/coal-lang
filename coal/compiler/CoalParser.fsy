@@ -48,7 +48,7 @@ Stmt: Def { $1 }
     | UNTIL LPAREN BoolExpr RPAREN Stmt { While(UnOp(OpBoolNegate, $3),$5) }
    // $1  $2     $3  $4         $5    $6   $7    $8   $9        $10      $11       $12  $13    $14
     | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON BoolExpr SEMICOLON Expr RPAREN Stmt {
-        Seq [ Vardef (Formal ($4, $6), Some $8) ; While($10, Seq [$14 ; Expr $12] )]
+        Seq [ MakeVardef(Formal ($4, $6), Some $8) ; While($10, Seq [$14 ; Expr $12] )]
       }
     | DO StmtList END { Seq(List.rev($2)) }
     | IF LPAREN BoolExpr RPAREN Stmt %prec IFX { IfThenElse($3,$5, None) }
@@ -57,10 +57,10 @@ Stmt: Def { $1 }
     | Expr SEMICOLON { Expr $1 }
     | ReturnStmt { $1 }
 
-Def   : LET IDENTIFIER COLON Type SEMICOLON { Vardef(Formal($2, $4), None) }
-      | LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON { Vardef(Formal ($2, $4), Some $6) }      
-      | LET IDENTIFIER COLON Type EQUAL Expr Stmt { Seq [Vardef(Formal ($2, $4), Some $6) ; $7] }
-      | LET IDENTIFIER LPAREN FuncDeclList RPAREN COLON Type Stmt { Funcdef(Formal ($2, $7), $4, $8) }
+Def   : LET IDENTIFIER COLON Type SEMICOLON { MakeVardef(Formal($2, $4), None) }
+      | LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON { MakeVardef(Formal ($2, $4), Some $6) }      
+      | LET IDENTIFIER COLON Type EQUAL Expr Stmt { Seq [MakeVardef(Formal ($2, $4), Some $6) ; $7] }
+      | LET IDENTIFIER LPAREN FuncDeclList RPAREN COLON Type Stmt { MakeFuncdef(Formal ($2, $7), $4, $8) }
 
 ParamList: { [] }
          | ExprList { $1 }
