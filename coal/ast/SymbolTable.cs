@@ -4,19 +4,9 @@ using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 
 namespace CoalLang {
-    public class AstPrinter {
-       Ast.Prog m_prog;
-        public AstPrinter (Ast.Prog prog) {
-            this.m_prog = prog;              
-            foreach (var s in m_prog.Item) {
-                Console.WriteLine(s);
-            }                        
-        }
-    }
-
     public class SymbolTable {
-        Ast.Prog m_prog;
-        List<Dictionary<String, Ast.Stmt.Vardef>> m_symbolTable;
+        public Ast.Prog m_prog;
+        public List<Dictionary<String, Ast.Stmt.Vardef>> m_symbolTable;
         public SymbolTable (Ast.Prog prog) {
             // Create the symbol table and push a scope onto it
             this.m_symbolTable = new List<Dictionary<string, Ast.Stmt.Vardef>>();
