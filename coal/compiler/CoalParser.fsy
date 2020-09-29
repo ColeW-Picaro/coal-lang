@@ -68,7 +68,7 @@ ParamList: { [] }
 ExprList: Expr { [$1] }
         | ExprList COMMA Expr { $3 :: $1 }  
 
-Formal: IDENTIFIER COLON Type { Formal ($1, $3) }
+Formal: IDENTIFIER COLON Type { MakeVardef(Formal ($1, $3), None) }
 
 FuncDeclList: { [] }
         | FormalDeclList { List.rev $1 }
@@ -82,8 +82,8 @@ Assign : IDENTIFIER EQUAL Expr { Assign($1,$3) }
 ReturnStmt : RETURN Expr SEMICOLON { Return(Some $2) }
 
 Expr: Literal { $1 }
-    | IDENTIFIER { VarRef($1) }
-    | IDENTIFIER LPAREN ParamList RPAREN { FuncCall($1, $3) }
+    | IDENTIFIER { MakeVarRef($1) }
+    | IDENTIFIER LPAREN ParamList RPAREN { MakeFuncCall($1, $3) }
     | LPAREN Expr RPAREN { $2 }
     | UnOp { $1 }
     | BinOp { $1 }
@@ -97,8 +97,8 @@ Literal :
 
 UnOp: BANG BoolExpr { UnOp(OpBoolNegate, $2) }
     | MINUS Expr %prec UMINUS { UnOp(OpValNegate, $2) }
-    | PLUS_PLUS IDENTIFIER { UnOp(OpIncr, VarRef($2)) }
-    | MINUS_MINUS IDENTIFIER { UnOp(OpDecr, VarRef($2)) }
+    | PLUS_PLUS IDENTIFIER { UnOp(OpIncr, MakeVarRef($2)) }
+    | MINUS_MINUS IDENTIFIER { UnOp(OpDecr, MakeVarRef($2)) }
 
 BinOp:
       Expr PLUS Expr { BinOp($1, OpPlus, $3) }

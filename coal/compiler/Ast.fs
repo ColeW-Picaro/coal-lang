@@ -39,12 +39,12 @@ module rec Ast =
     member this.Type = t
 
   type Expr = 
-  | VarRef of string
+  | VarRef of VarRefType
   | Int of int
   | Float of double
   | String of string
   | Bool of bool
-  | FuncCall of string * Expr list
+  | FuncCall of FuncCallType 
   | BinOp of Expr * Binary * Expr
   | UnOp of Unary * Expr
 
@@ -56,13 +56,14 @@ module rec Ast =
     member this.Name = s
     member this.Var : VardefType option = None 
 
-  type FuncdefType(arg : Formal * Formal list * Stmt) =
+  type FuncdefType(arg : Formal * VardefType list * Stmt) =
     member this.Formal = let (f, _, _) = arg in f
     member this.FormalList = let (_, fl, _) = arg in fl
     member this.Body = let (_, _, s) = arg in s 
 
-  type FuncCallType(s : string) =
-    member this.Name = s
+  type FuncCallType(arg : string * Expr list) =
+    member this.Name = let (n, _) = arg in n 
+    member this.ExprList = let (_, fl) = arg in fl
     member this.Fun : FuncdefType option = None
 
   type Stmt = 
@@ -80,6 +81,12 @@ module rec Ast =
 
   let MakeFuncdef t =
     Funcdef(FuncdefType t)
+
+  let MakeFuncCall t =
+    FuncCall(FuncCallType t)
+
+  let MakeVarRef t =
+    VarRef(VarRefType t)
 
   type Prog =
   | Prog of Stmt list

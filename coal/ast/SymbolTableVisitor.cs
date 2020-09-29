@@ -1,3 +1,4 @@
+using System.Reflection.Metadata;
 using System.Runtime.InteropServices.ComTypes;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -8,15 +9,23 @@ namespace CoalLang
   public class SymbolTableVisitor : IVisitor
   {
     public SymbolTable m_symbolTable;
-    private List<Ast.Stmt.Vardef> m_vardefs;
     public SymbolTableVisitor(SymbolTable st) {
       this.m_symbolTable = st;
-      this.m_vardefs = new List<Ast.Stmt.Vardef>();
       // Visits
       Visit();
     }
 
     public void Visit() {
+      foreach(var s in this.m_symbolTable.m_prog.Item) {
+        switch (s) {
+          case Ast.Stmt.Vardef v:
+            this.m_symbolTable.Insert(v.Item.Formal.Name, v);
+            break;
+          case Ast.Stmt.Funcdef f:
+            this.m_symbolTable.Insert(f.Item.Formal.Name, f);
+            break;
+        }
+      }
       Visit(this.m_symbolTable.m_prog);
     }
     // Visit methods for every relevant Ast type
@@ -90,17 +99,17 @@ namespace CoalLang
       }
     }
     public void Visit(Ast.Stmt.Vardef v) { 
-      if (v.Item.Expr != null){
+      this.m_symbolTable.Insert(v.Item.Formal.Name, v);
+      if (v.Item.Expr != null) {
         Visit(v.Item.Expr.Value);
       }
-      this.m_vardefs.Add(v);
     }
     public void Visit(Ast.Stmt.Funcdef f) { 
-      // Add formal params to vardefs
+      this.m_symbolTable.Insert(f.Item.Formal.Name, f);
+      // Add formal params to defs
       this.m_symbolTable.PushNewScope();
       foreach (var formal in f.Item.FormalList) {
         Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) Ast.Stmt.Vardef.NewVardef(new Ast.VardefType(new System.Tuple<Ast.Formal, FSharpOption<Ast.Expr>>(formal, new FSharpOption<Ast.Expr>(null))));
-        this.m_vardefs.Add(vd);
       }
       Visit(f.Item.Body);
       this.m_symbolTable.PopScope();
@@ -116,13 +125,6 @@ namespace CoalLang
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
       // Insert in symbol table
-      foreach (var vardef in m_vardefs) {
-        if (vardef.Item.Formal.Name == vr.Item) {
-          System.Console.WriteLine(vr.Item + " " + vardef);
-          this.m_symbolTable.Insert(vr.Item, vardef);
-          return;
-        }
-      }
       // Compiler Error???
     }
     public void Visit(Ast.Expr.Int i) { 
