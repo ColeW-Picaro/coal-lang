@@ -1,3 +1,5 @@
+using System.Runtime.InteropServices.ComTypes;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 
@@ -94,7 +96,14 @@ namespace CoalLang
       this.m_vardefs.Add(v);
     }
     public void Visit(Ast.Stmt.Funcdef f) { 
+      // Add formal params to vardefs
+      this.m_symbolTable.PushNewScope();
+      foreach (var formal in f.Item.FormalList) {
+        Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) Ast.Stmt.Vardef.NewVardef(new Ast.VardefType(new System.Tuple<Ast.Formal, FSharpOption<Ast.Expr>>(formal, new FSharpOption<Ast.Expr>(null))));
+        this.m_vardefs.Add(vd);
+      }
       Visit(f.Item.Body);
+      this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e)
     {
@@ -109,6 +118,7 @@ namespace CoalLang
       // Insert in symbol table
       foreach (var vardef in m_vardefs) {
         if (vardef.Item.Formal.Name == vr.Item) {
+          System.Console.WriteLine(vr.Item + " " + vardef);
           this.m_symbolTable.Insert(vr.Item, vardef);
           return;
         }

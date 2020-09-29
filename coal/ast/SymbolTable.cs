@@ -15,10 +15,14 @@ namespace CoalLang {
         }
 
         // Adds a new Key Value Pair to the current scope
-        public KeyValuePair<String, Ast.Stmt.Vardef> Insert(String name, Ast.Stmt.Vardef vardef) {
-            KeyValuePair<String, Ast.Stmt.Vardef> ins = new KeyValuePair<String, Ast.Stmt.Vardef>(name, vardef);
-            this.m_symbolTable[m_symbolTable.Count - 1].Add(name, vardef);
-            return ins;
+        public bool Insert(String name, Ast.Stmt.Vardef vardef) {
+            try {
+                KeyValuePair<String, Ast.Stmt.Vardef> ins = new KeyValuePair<String, Ast.Stmt.Vardef>(name, vardef);
+                this.m_symbolTable[m_symbolTable.Count - 1].Add(name, vardef);
+                return true;
+            } catch (System.ArgumentException) {
+                return false;
+            }
         }
         
         // Pushes a new scope onto the symbol table
