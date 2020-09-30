@@ -109,7 +109,8 @@ namespace CoalLang
       // Add formal params to defs
       this.m_symbolTable.PushNewScope();
       foreach (var formal in f.Item.FormalList) {
-        Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) Ast.Stmt.Vardef.NewVardef(new Ast.VardefType(new System.Tuple<Ast.Formal, FSharpOption<Ast.Expr>>(formal, new FSharpOption<Ast.Expr>(null))));
+        Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) Ast.Stmt.Vardef.NewVardef(new Ast.VardefType(new System.Tuple<Ast.Formal, FSharpOption<Ast.Expr>>(formal.Formal, new FSharpOption<Ast.Expr>(null))));
+        this.m_symbolTable.Insert(vd.Item.Formal.Name, vd);
       }
       Visit(f.Item.Body);
       this.m_symbolTable.PopScope();

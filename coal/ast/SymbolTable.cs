@@ -19,6 +19,7 @@ namespace CoalLang {
             try {
                 KeyValuePair<String, Ast.Stmt> ins = new KeyValuePair<String, Ast.Stmt>(name, def);
                 this.m_symbolTable[m_symbolTable.Count - 1].Add(name, def);
+                Console.WriteLine(ins);
                 return true;
             } catch (System.ArgumentException) {
                 return false;

@@ -48,6 +48,16 @@ module rec Ast =
   | BinOp of Expr * Binary * Expr
   | UnOp of Unary * Expr
 
+  type Stmt = 
+  | Assign of string * Expr
+  | While of Expr * Stmt 
+  | Seq of Stmt list
+  | IfThenElse of Expr * Stmt * Stmt option
+  | Vardef of VardefType
+  | Funcdef of FuncdefType
+  | Expr of Expr
+  | Return of Expr option
+
   type VardefType(arg : Formal * Expr option) =
     member this.Formal = let (f, _) = arg in f
     member this.Expr = let (_, e) = arg in e
@@ -65,16 +75,6 @@ module rec Ast =
     member this.Name = let (n, _) = arg in n 
     member this.ExprList = let (_, fl) = arg in fl
     member this.Fun : FuncdefType option = None
-
-  type Stmt = 
-  | Assign of string * Expr
-  | While of Expr * Stmt 
-  | Seq of Stmt list
-  | IfThenElse of Expr * Stmt * Stmt option
-  | Vardef of VardefType
-  | Funcdef of FuncdefType
-  | Expr of Expr
-  | Return of Expr option
 
   let MakeVardef t = 
     Vardef(VardefType t)
