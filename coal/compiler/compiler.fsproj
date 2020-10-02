@@ -5,25 +5,32 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!--Compile Include="JsonValue.fs" />
-    <FsYacc Include="Parser.fsy">
-      <OtherFlags>module Parser -v</OtherFlags>
-    </FsYacc>
-    <FsLex Include="Lexer.fsl">
-      <OtherFlags>unicode</OtherFlags>
-    </FsLex>    
-    <Compile Include="Parser.fsi" />
-    <Compile Include="Parser.fs" />
-    <Compile Include="Lexer.fs" / -->
+    <PackageReference Include="FsLexYacc" Version="10.0.0" />
+  </ItemGroup>
 
+<<<<<<< HEAD
     <FsLex Include="CoalLexer.fsl">
       <OtherFlags>--unicode</OtherFlags>
     </FsLex>    
     <Compile Include="CoalLexer.fs" />
+=======
+  <ItemGroup>
+    <Compile Include="Ast.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FsLexYacc" Version="10.0.0" />
+    <FsYacc Include="CoalParser.fsy">
+      <OtherFlags>--module Parser</OtherFlags>
+    </FsYacc>
+    <Compile Include="CoalParser.fs" />
+>>>>>>> a5f80e6af07f0003a8ebd9db5141a500caad61ae
+  </ItemGroup>
+  
+  <ItemGroup>
+    <FsLex Include="CoalLexer.fsl">
+      <OtherFlags>--unicode</OtherFlags>
+    </FsLex>    
+    <Compile Include="CoalLexer.fs" />
   </ItemGroup>
 
 </Project>

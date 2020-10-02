@@ -5,7 +5,7 @@ module Lexer
 
 open FSharp.Text.Lexing
 open System
-// open Parser
+open Parser
 
 exception SyntaxError of string
 
@@ -13,55 +13,6 @@ let lexeme = LexBuffer<_>.LexemeString
 
 let newline (lexbuf: LexBuffer<_>) = 
   lexbuf.StartPos <- lexbuf.StartPos.NextLine
-
-
-type token =
-  | INT_LIT of int
-  | FLOAT_LIT of float
-  | STRING_LIT of string
-  | BOOL_LIT of bool
-  | IDENTIFIER of string
-  | NIL
-  | STRING
-  | INT
-  | FLOAT
-  | BOOL
-  | LET
-  | DO
-  | END
-  | IF
-  | FOR
-  | IN
-  | WHILE
-  | UNTIL
-  | UNLESS
-  | CLASS
-  | SUPER
-  | THIS
-  | BANG_EQUAL
-  | GREATER_EQUAL
-  | LESS_EQUAL
-  | EQUAL_EQUAL
-  | PLUS_PLUS
-  | MINUS_MINUS
-  | AND
-  | OR
-  | DOT_DOT
-  | BANG
-  | GREATER
-  | LESS
-  | EQUAL
-  | LPAREN
-  | RPAREN
-  | COLON
-  | COMMA
-  | DOT
-  | SLASH
-  | STAR
-  | MINUS
-  | PLUS
-  | SEMICOLON
-  | EOF
 
 }
 
@@ -96,6 +47,7 @@ rule read =
   | "do"     { DO }
   | "end"    { END }
   | "if"     { IF }
+  | "else"   { ELSE }
   | "for"    { FOR }  
   | "in"     { IN }
   | "while"  { WHILE }
@@ -104,6 +56,7 @@ rule read =
   | "class"  { CLASS }
   | "super"  { SUPER }
   | "this"   { THIS }
+  | "return" { RETURN }
   | "!="     { BANG_EQUAL }
   | ">="     { GREATER_EQUAL }
   | "<="     { LESS_EQUAL }
