@@ -1,0 +1,19 @@
+let min (a:int, b:int) : int do
+  if (a < b)
+    a;
+  else
+    b;
+end
+
+let foo (a:int) : int do
+    let sum : int = a + a;
+    let prod : int = a * a;
+    let b : int = b / 1;
+    let bar (b:int) : int do
+      a + b;
+    end
+    bar (a);
+end
+let c : string;
+let name : string = "Hello, world!";
+return name;
