@@ -8,12 +8,6 @@
     <PackageReference Include="FsLexYacc" Version="10.0.0" />
   </ItemGroup>
 
-<<<<<<< HEAD
-    <FsLex Include="CoalLexer.fsl">
-      <OtherFlags>--unicode</OtherFlags>
-    </FsLex>    
-    <Compile Include="CoalLexer.fs" />
-=======
   <ItemGroup>
     <Compile Include="Ast.fs" />
   </ItemGroup>
@@ -23,7 +17,6 @@
       <OtherFlags>--module Parser</OtherFlags>
     </FsYacc>
     <Compile Include="CoalParser.fs" />
->>>>>>> a5f80e6af07f0003a8ebd9db5141a500caad61ae
   </ItemGroup>
   
   <ItemGroup>

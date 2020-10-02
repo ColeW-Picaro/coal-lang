@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 
+using Optional;
+
 namespace CoalLang
 {
   public class SymbolTableVisitor : IVisitor
@@ -125,7 +127,7 @@ namespace CoalLang
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
-      // Insert in symbol table
+      Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
       // Compiler Error???
     }
     public void Visit(Ast.Expr.Int i) { 
