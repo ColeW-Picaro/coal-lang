@@ -128,7 +128,8 @@ namespace CoalLang
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
       Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
-      // Compiler Error???
+      var vardef = vd.Match((v) => (Ast.Stmt.Vardef) v,
+                            () => null);
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -143,7 +144,9 @@ namespace CoalLang
 
     }
     public void Visit(Ast.Expr.FuncCall f) { 
-      // Insert in symbol table
+      Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
+      var funcdef = fd.Match((f) => (Ast.Stmt.Funcdef) f,
+                               () => null);
     }
     public void Visit(Ast.Expr.BinOp b) { 
       Visit(b.Item1);
