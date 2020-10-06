@@ -8,27 +8,17 @@ using Optional;
 
 namespace CoalLang
 {
-  public class SymbolTableVisitor : IVisitor
+  public class TypeCheckingVisitor : IVisitor
   {
-    public SymbolTable m_symbolTable;
-    public SymbolTableVisitor(SymbolTable st) {
-      this.m_symbolTable = st;
+    Ast.Prog m_prog;
+    public TypeCheckingVisitor(Ast.Prog prog) {
+      this.m_prog = prog;
       // Visits
       Visit();
     }
 
     public void Visit() {
-      foreach(var s in this.m_symbolTable.m_prog.Item) {
-        switch (s) {
-          case Ast.Stmt.Vardef v:
-            this.m_symbolTable.Insert(v.Item.Formal.Name, v);
-            break;
-          case Ast.Stmt.Funcdef f:
-            this.m_symbolTable.Insert(f.Item.Formal.Name, f);
-            break;
-        }
-      }
-      Visit(this.m_symbolTable.m_prog);
+      Visit(this.m_prog);
     }
     // Visit methods for every relevant Ast type
     // Looking for Vardefs and VarRefs to insert into the symbol table
@@ -87,11 +77,9 @@ namespace CoalLang
     }
     public void Visit(Ast.Stmt.Seq s) { 
       // Seqs introduce scope
-      this.m_symbolTable.PushNewScope();
       foreach (var v in s.Item) {
         Visit(v);
       }
-      this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.IfThenElse i) { 
       // Cond
@@ -104,21 +92,12 @@ namespace CoalLang
       }
     }
     public void Visit(Ast.Stmt.Vardef v) { 
-      this.m_symbolTable.Insert(v.Item.Formal.Name, v);
       if (v.Item.Expr != null) {
         Visit(v.Item.Expr.Value);
       }
     }
     public void Visit(Ast.Stmt.Funcdef f) { 
-      this.m_symbolTable.Insert(f.Item.Formal.Name, f);
-      // Add formal params to defs
-      this.m_symbolTable.PushNewScope();
-      foreach (var formal in f.Item.FormalList) {
-        Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) Ast.Stmt.Vardef.NewVardef(new Ast.VardefType(new System.Tuple<Ast.Formal, FSharpOption<Ast.Expr>>(formal.Formal, new FSharpOption<Ast.Expr>(null))));
-        this.m_symbolTable.Insert(vd.Item.Formal.Name, vd);
-      }
       Visit(f.Item.Body);
-      this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e) {
       Visit(e.Item);
@@ -128,10 +107,9 @@ namespace CoalLang
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
-      // Find the corresponding vardef in symbol table
-      Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
-      vd.MatchSome(v => vr.Item.Decl = v);
-      System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
+      FSharpOption<Ast.Stmt> d = vr.Item.Decl;
+      Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) d.Value;
+      vr.ActualType = vd.Item.Formal.Type;
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -146,16 +124,21 @@ namespace CoalLang
 
     }
     public void Visit(Ast.Expr.FuncCall f) {
-      Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
-      fd.MatchSome(funcdef => f.Item.Decl = funcdef);
-      System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
-      foreach (var e in f.Item.ExprList) {
-        Visit(e);
-      }
+        foreach (var e in f.Item.ExprList) {
+            Visit(e);
+        }
+        // Compare param types to decl types
     }
     public void Visit(Ast.Expr.BinOp b) { 
       Visit(b.Item.Lhs);
       Visit(b.Item.Rhs);
+      if (b.Item.Lhs.ActualType == b.Item.Rhs.ActualType) {
+          b.ActualType = b.Item.Lhs.ActualType;
+          // TODO propagate type or return new type for each of
+          // TODO check if op is defined for type params
+      } else {
+          System.Console.WriteLine("Type Mismatch " + b.Item.Lhs.ActualType + " " + b.Item.Rhs.ActualType);
+      }
     }
     public void Visit(Ast.Expr.UnOp u) { 
       Visit(u.Item.Lhs);

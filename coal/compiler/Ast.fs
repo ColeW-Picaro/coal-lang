@@ -13,6 +13,7 @@ module rec Ast =
   | FloatType
   | StringType
   | NilType
+  | Unresolved
 
   type Binary =
   | OpNotEqual
@@ -38,18 +39,63 @@ module rec Ast =
     member this.Name = name
     member this.Type = t
 
-  type Expr = 
-  | VarRef of VarRefType
-  | Int of int
-  | Float of double
-  | String of string
-  | Bool of bool
-  | FuncCall of FuncCallType 
-  | BinOp of Expr * Binary * Expr
-  | UnOp of Unary * Expr
+  type IntLit(i : int) =
+    member this.Value = i
 
-  type Stmt = 
-  | Assign of string * Expr
+  type FloatLit(f : double) =
+    member this.Value = f
+
+  type StringLit(s : string) =
+    member this.Value = s
+
+  type BoolLit(b : bool) =
+    member this.Value = b
+
+  type BinOpType(lhs: Expr, op: Binary, rhs: Expr) =
+    member this.Lhs = lhs
+    member this.Op = op
+    member this.Rhs = rhs
+    member val ActualType : Type = Unresolved with get, set
+
+  type UnOpType(op: Unary, lhs: Expr) =
+    member this.Lhs = lhs
+    member this.Op = op
+    member val ActualType : Type = Unresolved with get, set
+
+  type ITypeResolvable =
+    abstract GetActualType: unit -> Type
+    abstract SetActualType: Type -> unit
+
+  type Expr = 
+    | VarRef of VarRefType
+    | Int of IntLit
+    | Float of FloatLit
+    | String of StringLit
+    | Bool of BoolLit
+    | FuncCall of FuncCallType
+    | BinOp of BinOpType
+    | UnOp of UnOpType
+
+    member this.ActualType with get () =
+        match this with
+          | VarRef v -> v.ActualType
+          | Int i -> IntType
+          | Float f -> FloatType
+          | String s -> StringType
+          | Bool b -> BoolType
+          | FuncCall f -> f.ActualType
+          | BinOp b -> b.ActualType
+          | UnOp u -> u.ActualType
+    member this.ActualType with set t =
+        match this with
+          | VarRef v -> v.ActualType <- t
+          | FuncCall f -> f.ActualType <- t
+          | BinOp b -> b.ActualType <- t
+          | UnOp u -> u.ActualType <- t
+          | _ -> ()
+
+  type Stmt =
+  | Assign of Expr * Expr
   | While of Expr * Stmt 
   | Seq of Stmt list
   | IfThenElse of Expr * Stmt * Stmt option
@@ -65,6 +111,7 @@ module rec Ast =
   type VarRefType(s : string) =
     member this.Name = s
     member val Decl : Stmt option = None with get, set
+    member val ActualType : Type = Unresolved with get, set
 
   type FuncdefType(arg : Formal * VardefType list * Stmt) =
     member this.Formal = let (f, _, _) = arg in f
@@ -75,6 +122,7 @@ module rec Ast =
     member this.Name = let (n, _) = arg in n 
     member this.ExprList = let (_, fl) = arg in fl
     member val Decl : Stmt option = None with get, set
+    member val ActualType : Type = Unresolved with get, set
 
   let MakeVardef t = 
     Vardef(VardefType t)
@@ -87,6 +135,12 @@ module rec Ast =
 
   let MakeVarRef t =
     VarRef(VarRefType t)
+
+  let MakeBinOp t =
+    BinOp(BinOpType t)
+
+  let MakeUnOp t =
+    UnOp(UnOpType t)
 
   type Prog =
   | Prog of Stmt list
