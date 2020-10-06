@@ -117,8 +117,7 @@ namespace CoalLang
       Visit(f.Item.Body);
       this.m_symbolTable.PopScope();
     }
-    public void Visit(Ast.Stmt.Expr e)
-    {
+    public void Visit(Ast.Stmt.Expr e) {
       Visit(e.Item);
     }
     public void Visit(Ast.Stmt.Return r) { 
@@ -128,8 +127,8 @@ namespace CoalLang
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
       Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
-      var vardef = vd.Match((v) => (Ast.Stmt.Vardef) v,
-                            () => null);
+      vd.MatchSome(v => vr.Item.Decl = v);
+      System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -143,10 +142,10 @@ namespace CoalLang
     public void Visit(Ast.Expr.Bool b) { 
 
     }
-    public void Visit(Ast.Expr.FuncCall f) { 
+    public void Visit(Ast.Expr.FuncCall f) {
       Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
-      var funcdef = fd.Match((f) => (Ast.Stmt.Funcdef) f,
-                               () => null);
+      fd.MatchSome(funcdef => f.Item.Decl = funcdef);
+      System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
     }
     public void Visit(Ast.Expr.BinOp b) { 
       Visit(b.Item1);

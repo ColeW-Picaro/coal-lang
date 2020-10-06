@@ -64,7 +64,7 @@ module rec Ast =
 
   type VarRefType(s : string) =
     member this.Name = s
-    member this.Var : VardefType option = None 
+    member val Decl : Stmt option = None with get, set
 
   type FuncdefType(arg : Formal * VardefType list * Stmt) =
     member this.Formal = let (f, _, _) = arg in f
@@ -74,7 +74,7 @@ module rec Ast =
   type FuncCallType(arg : string * Expr list) =
     member this.Name = let (n, _) = arg in n 
     member this.ExprList = let (_, fl) = arg in fl
-    member this.Fun : FuncdefType option = None
+    member val Decl : Stmt option = None with get, set
 
   let MakeVardef t = 
     Vardef(VardefType t)
