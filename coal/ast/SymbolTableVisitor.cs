@@ -4,6 +4,8 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 
+using Optional;
+
 namespace CoalLang
 {
   public class SymbolTableVisitor : IVisitor
@@ -115,8 +117,7 @@ namespace CoalLang
       Visit(f.Item.Body);
       this.m_symbolTable.PopScope();
     }
-    public void Visit(Ast.Stmt.Expr e)
-    {
+    public void Visit(Ast.Stmt.Expr e) {
       Visit(e.Item);
     }
     public void Visit(Ast.Stmt.Return r) { 
@@ -125,8 +126,9 @@ namespace CoalLang
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
-      // Insert in symbol table
-      // Compiler Error???
+      Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
+      vd.MatchSome(v => vr.Item.Decl = v);
+      System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -140,8 +142,10 @@ namespace CoalLang
     public void Visit(Ast.Expr.Bool b) { 
 
     }
-    public void Visit(Ast.Expr.FuncCall f) { 
-      // Insert in symbol table
+    public void Visit(Ast.Expr.FuncCall f) {
+      Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
+      fd.MatchSome(funcdef => f.Item.Decl = funcdef);
+      System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
     }
     public void Visit(Ast.Expr.BinOp b) { 
       Visit(b.Item1);
