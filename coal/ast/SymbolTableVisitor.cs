@@ -12,7 +12,7 @@ namespace CoalLang
     public SymbolTable m_symbolTable;
     public SymbolTableVisitor(SymbolTable st) {
       this.m_FunctionStack = new Stack<Ast.Stmt.Funcdef>();
-      this.m_FunctionStack.Push((Ast.Stmt.Funcdef) Ast.MakeFuncdef(new Ast.Formal("Name", Ast.Type.IntType), null, null));
+      // this.m_FunctionStack.Push((Ast.Stmt.Funcdef) Ast.MakeFuncdef(new Ast.Formal("Name", Ast.Type.IntType), null, null));
       this.m_symbolTable = st;
       // Visits
       Visit();
@@ -117,6 +117,8 @@ namespace CoalLang
         this.m_symbolTable.Insert(vd.Item.Formal.Name, vd);
       }
       Visit(f.Item.Body);
+      this.m_FunctionStack.Pop();
+      System.Console.WriteLine("Pop " + f);
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e) {
@@ -127,7 +129,7 @@ namespace CoalLang
       if (this.m_FunctionStack.Count == 0) {
         r.Item.Decl = (Ast.Stmt.Funcdef) Ast.Stmt.Funcdef.NewFuncdef(new Ast.FuncdefType(new System.Tuple<Ast.Formal, FSharpList<Ast.VardefType>, Ast.Stmt>(new Ast.Formal("Main", Ast.Type.IntType), null, null)));
       } else {
-        r.Item.Decl = this.m_FunctionStack.Pop();
+        r.Item.Decl = this.m_FunctionStack.Peek();
       }
       Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
       System.Console.WriteLine("Return " + fd.Item.Formal.Name);
