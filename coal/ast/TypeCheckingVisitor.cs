@@ -71,7 +71,6 @@ namespace CoalLang
       // RHS
       Visit(a.Item2);
       Debug.Assert(a.Item1.ActualType == a.Item2.ActualType);
-
     }
     public void Visit(Ast.Stmt.While w)
     {
@@ -99,6 +98,7 @@ namespace CoalLang
     public void Visit(Ast.Stmt.Vardef v) { 
       if (v.Item.Expr != null) {
         Visit(v.Item.Expr.Value);
+        Debug.Assert(v.Item.Formal.Type == v.Item.Expr.Value.ActualType);
       }
     }
     public void Visit(Ast.Stmt.Funcdef f) { 
@@ -160,7 +160,6 @@ namespace CoalLang
       u.ActualType = u.Item.Lhs.ActualType;
       // TODO check if op is defined for type params
       Debug.Assert(u.ActualType.IsFloatType || u.ActualType.IsIntType);
-
     }
     private void Visit(Ast.Expr e)
     {

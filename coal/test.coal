@@ -16,4 +16,5 @@ let foo (a:int) : int do
 end
 let c : string;
 let name : string = "Hello, world!";
+name = "Hello world!";
 return name;
