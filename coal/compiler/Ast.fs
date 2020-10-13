@@ -39,6 +39,11 @@ module rec Ast =
     member this.Name = name
     member this.Type = t
 
+  type VarRefType(s : string) =
+    member this.Name = s
+    member val Decl : Stmt option = None with get, set
+    member val ActualType : Type = Unresolved with get, set
+
   type IntLit(i : int) =
     member this.Value = i
 
@@ -50,6 +55,12 @@ module rec Ast =
 
   type BoolLit(b : bool) =
     member this.Value = b
+
+  type FuncCallType(arg : string * Expr list) =
+    member this.Name = let (n, _) = arg in n
+    member this.ExprList = let (_, fl) = arg in fl
+    member val Decl : Stmt option = None with get, set
+    member val ActualType : Type = Unresolved with get, set
 
   type BinOpType(lhs: Expr, op: Binary, rhs: Expr) =
     member this.Lhs = lhs
@@ -95,40 +106,70 @@ module rec Ast =
           | _ -> ()
 
   type Stmt =
-  | Assign of Expr * Expr
-  | While of Expr * Stmt 
-  | Seq of Stmt list
-  | IfThenElse of Expr * Stmt * Stmt option
+  | Assign of AssignType
+  | While of WhileType
+  | Seq of SeqType
+  | IfThenElse of IfThenElseType
   | Vardef of VardefType
   | Funcdef of FuncdefType
-  | Expr of Expr
-  | Return of Expr option
+  | Expr of ExprType
+  | Return of ReturnType
+
+  type AssignType(lhs: Expr, rhs: Expr) =
+    member this.Lhs = lhs
+    member this.Rhs = rhs
+
+  type WhileType(cond: Expr, body: Stmt) =
+    member this.Cond = cond
+    member this.Body = body
+
+  type SeqType(body: Stmt list) =
+    member this.Body = body
+
+  type IfThenElseType(cond: Expr, body: Stmt, elseBody: Stmt option) =
+    member this.Cond = cond
+    member this.Body = body
+    member this.ElseBody = elseBody
 
   type VardefType(arg : Formal * Expr option) =
     member this.Formal = let (f, _) = arg in f
     member this.Expr = let (_, e) = arg in e
-
-  type VarRefType(s : string) =
-    member this.Name = s
-    member val Decl : Stmt option = None with get, set
-    member val ActualType : Type = Unresolved with get, set
 
   type FuncdefType(arg : Formal * VardefType list * Stmt) =
     member this.Formal = let (f, _, _) = arg in f
     member this.FormalList = let (_, fl, _) = arg in fl
     member this.Body = let (_, _, s) = arg in s 
 
-  type FuncCallType(arg : string * Expr list) =
-    member this.Name = let (n, _) = arg in n 
-    member this.ExprList = let (_, fl) = arg in fl
-    member val Decl : Stmt option = None with get, set
-    member val ActualType : Type = Unresolved with get, set
+  type ExprType(expr: Expr) =
+    member this.Expr = expr
 
-  let MakeVardef t = 
+  type ReturnType(expr: Expr option) =
+    member this.Expr = expr
+    member val Decl: Stmt option = None with get, set
+
+  let MakeAssign t =
+    Assign(AssignType t)
+
+  let MakeWhile t =
+    While(WhileType t)
+
+  let MakeSeq t =
+    Seq(SeqType t)
+
+  let MakeIfThenElse t =
+    IfThenElse(IfThenElseType t)
+
+  let MakeVardef t =
     Vardef(VardefType t)
 
   let MakeFuncdef t =
     Funcdef(FuncdefType t)
+
+  let MakeExpr t =
+    Expr(ExprType t)
+
+  let MakeReturn t =
+    Return(ReturnType t)
 
   let MakeFuncCall t =
     FuncCall(FuncCallType t)

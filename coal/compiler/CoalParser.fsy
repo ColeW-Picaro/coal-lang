@@ -44,22 +44,22 @@ StmtList: { [] }
 // Statements and Expressions
 Stmt: Def { $1 }
     | Assign SEMICOLON { $1 }
-    | WHILE LPAREN BoolExpr RPAREN Stmt { While($3,$5) }
-    | UNTIL LPAREN BoolExpr RPAREN Stmt { While(MakeUnOp(OpBoolNegate, $3),$5) }
+    | WHILE LPAREN BoolExpr RPAREN Stmt { MakeWhile($3,$5) }
+    | UNTIL LPAREN BoolExpr RPAREN Stmt { MakeWhile(MakeUnOp(OpBoolNegate, $3),$5) }
    // $1  $2     $3  $4         $5    $6   $7    $8   $9        $10      $11       $12  $13    $14
     | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON BoolExpr SEMICOLON Expr RPAREN Stmt {
-        Seq [ MakeVardef(Formal ($4, $6), Some $8) ; While($10, Seq [$14 ; Expr $12] )]
+        MakeSeq([ MakeVardef(Formal ($4, $6), Some $8) ; MakeWhile($10, MakeSeq [$14 ; MakeExpr($12)] )])
       }
-    | DO StmtList END { Seq(List.rev($2)) }
-    | IF LPAREN BoolExpr RPAREN Stmt %prec IFX { IfThenElse($3,$5, None) }
-    | IF LPAREN BoolExpr RPAREN Stmt ELSE Stmt { IfThenElse($3,$5, Some $7) }
-    | UNLESS LPAREN BoolExpr RPAREN Stmt { IfThenElse(MakeUnOp(OpBoolNegate, $3),$5, None) }
-    | Expr SEMICOLON { Expr $1 }
+    | DO StmtList END { MakeSeq(List.rev($2)) }
+    | IF LPAREN BoolExpr RPAREN Stmt %prec IFX { MakeIfThenElse($3,$5, None) }
+    | IF LPAREN BoolExpr RPAREN Stmt ELSE Stmt { MakeIfThenElse($3,$5, Some $7) }
+    | UNLESS LPAREN BoolExpr RPAREN Stmt { MakeIfThenElse(MakeUnOp(OpBoolNegate, $3),$5, None) }
+    | Expr SEMICOLON { MakeExpr($1) }
     | ReturnStmt { $1 }
 
 Def   : LET IDENTIFIER COLON Type SEMICOLON { MakeVardef(Formal($2, $4), None) }
       | LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON { MakeVardef(Formal ($2, $4), Some $6) }      
-      | LET IDENTIFIER COLON Type EQUAL Expr Stmt { Seq [MakeVardef(Formal ($2, $4), Some $6) ; $7] }
+      | LET IDENTIFIER COLON Type EQUAL Expr Stmt { MakeSeq [MakeVardef(Formal ($2, $4), Some $6) ; $7] }
       | LET IDENTIFIER LPAREN FuncDeclList RPAREN COLON Type Stmt { MakeFuncdef(Formal ($2, $7), $4, $8) }
 
 ParamList: { [] }
@@ -77,9 +77,9 @@ FormalDeclList: Formal { ($1)::[] }
         | FormalDeclList COMMA Formal { $3 :: $1 }
 
 
-Assign : IDENTIFIER EQUAL Expr { Assign(MakeVarRef($1),$3) }
+Assign : IDENTIFIER EQUAL Expr { MakeAssign(MakeVarRef($1),$3) }
 
-ReturnStmt : RETURN Expr SEMICOLON { Return(Some $2) }
+ReturnStmt : RETURN Expr SEMICOLON { MakeReturn(Some $2) }
 
 Expr: Literal { $1 }
     | IDENTIFIER { MakeVarRef($1) }

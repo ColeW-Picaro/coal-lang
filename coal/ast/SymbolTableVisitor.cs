@@ -1,8 +1,6 @@
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using Microsoft.FSharp.Core;
+using Microsoft.FSharp.Collections;
+using System.Collections.Generic;
 
 using Optional;
 
@@ -10,8 +8,11 @@ namespace CoalLang
 {
   public class SymbolTableVisitor : IVisitor
   {
+    public Stack<Ast.Stmt.Funcdef> m_FunctionStack;
     public SymbolTable m_symbolTable;
     public SymbolTableVisitor(SymbolTable st) {
+      this.m_FunctionStack = new Stack<Ast.Stmt.Funcdef>();
+      this.m_FunctionStack.Push((Ast.Stmt.Funcdef) Ast.MakeFuncdef(new Ast.Formal("Name", Ast.Type.IntType), null, null));
       this.m_symbolTable = st;
       // Visits
       Visit();
@@ -73,34 +74,30 @@ namespace CoalLang
     }
     public void Visit(Ast.Stmt.Assign a)
     {
-      // LHS
-      Visit(a.Item1);
-      // RHS
-      Visit(a.Item2);
+      Visit(a.Item.Lhs);
+      Visit(a.Item.Rhs);
     }
     public void Visit(Ast.Stmt.While w)
     {
-      // Cond
-      Visit(w.Item1);
-      // Body
-      Visit(w.Item2);
+      Visit(w.Item.Cond);
+      Visit(w.Item.Body);
     }
     public void Visit(Ast.Stmt.Seq s) { 
       // Seqs introduce scope
       this.m_symbolTable.PushNewScope();
-      foreach (var v in s.Item) {
+      foreach (var v in s.Item.Body) {
         Visit(v);
       }
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.IfThenElse i) { 
       // Cond
-      Visit(i.Item1);
+      Visit(i.Item.Body);
       // If body
-      Visit(i.Item2);
+      Visit(i.Item.Cond);
       // Else body
-      if (i.Item3 != null) {
-        Visit(i.Item3.Value);
+      if (i.Item.ElseBody != null) {
+        Visit(i.Item.ElseBody.Value);
       }
     }
     public void Visit(Ast.Stmt.Vardef v) { 
@@ -109,7 +106,9 @@ namespace CoalLang
         Visit(v.Item.Expr.Value);
       }
     }
-    public void Visit(Ast.Stmt.Funcdef f) { 
+    public void Visit(Ast.Stmt.Funcdef f) {
+      this.m_FunctionStack.Push(f);
+      System.Console.WriteLine("Push " + f);
       this.m_symbolTable.Insert(f.Item.Formal.Name, f);
       // Add formal params to defs
       this.m_symbolTable.PushNewScope();
@@ -121,10 +120,17 @@ namespace CoalLang
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e) {
-      Visit(e.Item);
+      Visit(e.Item.Expr);
     }
     public void Visit(Ast.Stmt.Return r) { 
-      Visit(r.Item.Value);
+      Visit(r.Item.Expr.Value);
+      if (this.m_FunctionStack.Count == 0) {
+        r.Item.Decl = (Ast.Stmt.Funcdef) Ast.Stmt.Funcdef.NewFuncdef(new Ast.FuncdefType(new System.Tuple<Ast.Formal, FSharpList<Ast.VardefType>, Ast.Stmt>(new Ast.Formal("Main", Ast.Type.IntType), null, null)));
+      } else {
+        r.Item.Decl = this.m_FunctionStack.Pop();
+      }
+      Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
+      System.Console.WriteLine("Return " + fd.Item.Formal.Name);
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 

@@ -1,20 +1,21 @@
-let min (a:int, b:int) : int do
-  if (a < b)
-    a;
-  else
-    b;
-end
+  let min (a:int, b:int) : int do
+    if (a < b)
+      return a;
+    else
+      return b;
+  end
 
-let foo (a:int) : int do
+  let foo (a:int) : int do
     let sum : int = a + a;
     let prod : int = a * a;
     let b : int = b / 1;
     let bar (b:int) : int do
-      a + b;
+      return a + b;
     end
-    bar (a);
-end
-let c : string;
-let name : string = "Hello, world!";
-name = "Hello world!";
-return name;
+    return bar (a);
+  end
+
+  let c : string;
+  let name : string = "Hello, world!";
+  name = "Hello world!";
+  return 0;

@@ -1,13 +1,6 @@
-using System;
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using System.Diagnostics;
 using Microsoft.FSharp.Core;
 using Microsoft.FSharp.Collections;
-
-using Optional;
 
 namespace CoalLang
 {
@@ -60,39 +53,39 @@ namespace CoalLang
           Visit(e);
           break;
         case Ast.Stmt.Return r:
-          Visit(r);
+         Visit(r);
           break;
       }
     }
     public void Visit(Ast.Stmt.Assign a)
     {
       // LHS
-      Visit(a.Item1);
+      Visit(a.Item.Lhs);
       // RHS
-      Visit(a.Item2);
-      Debug.Assert(a.Item1.ActualType == a.Item2.ActualType);
+      Visit(a.Item.Rhs);
+      Debug.Assert(a.Item.Lhs.ActualType == a.Item.Lhs.ActualType);
     }
     public void Visit(Ast.Stmt.While w)
     {
       // Cond
-      Visit(w.Item1);
+      Visit(w.Item.Cond);
       // Body
-      Visit(w.Item2);
+      Visit(w.Item.Body);
     }
     public void Visit(Ast.Stmt.Seq s) { 
       // Seqs introduce scope
-      foreach (var v in s.Item) {
+      foreach (var v in s.Item.Body) {
         Visit(v);
       }
     }
     public void Visit(Ast.Stmt.IfThenElse i) { 
       // Cond
-      Visit(i.Item1);
+      Visit(i.Item.Cond);
       // If body
-      Visit(i.Item2);
+      Visit(i.Item.Body);
       // Else body
-      if (i.Item3 != null) {
-        Visit(i.Item3.Value);
+      if (i.Item.ElseBody != null) {
+        Visit(i.Item.ElseBody.Value);
       }
     }
     public void Visit(Ast.Stmt.Vardef v) { 
@@ -105,10 +98,13 @@ namespace CoalLang
       Visit(f.Item.Body);
     }
     public void Visit(Ast.Stmt.Expr e) {
-      Visit(e.Item);
+      Visit(e.Item.Expr);
     }
     public void Visit(Ast.Stmt.Return r) { 
-      Visit(r.Item.Value);
+      Visit(r.Item.Expr.Value);
+      Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
+      Ast.Expr e = r.Item.Expr.Value;
+      Debug.Assert(fd.Item.Formal.Type == e.ActualType);
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
@@ -117,22 +113,22 @@ namespace CoalLang
       vr.ActualType = vd.Item.Formal.Type;
     }
     public void Visit(Ast.Expr.Int i) { 
-      
+      i.ActualType = Ast.Type.IntType;
     }
     public void Visit(Ast.Expr.Float f) {
-    
+      f.ActualType = Ast.Type.FloatType;
     }
     public void Visit(Ast.Expr.String s) { 
-
+      s.ActualType = Ast.Type.StringType;
     }
     public void Visit(Ast.Expr.Bool b) { 
-
+      b.ActualType = Ast.Type.BoolType;
     }
     public void Visit(Ast.Expr.FuncCall f) {
-        Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) f.Item.Decl.Value;
         foreach (var e in f.Item.ExprList) {
             Visit(e);
         }
+        Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) f.Item.Decl.Value;
         // Compare param types to decl types
         var formalList = SeqModule.ToList(fd.Item.FormalList);
         var actualList = SeqModule.ToList(f.Item.ExprList);
@@ -140,17 +136,23 @@ namespace CoalLang
         foreach (var af in actualAndFormal) {
             Debug.Assert(af.Item1.ActualType == af.Item2.Formal.Type);
         }
-
+        f.ActualType = fd.Item.Formal.Type;
     }
     public void Visit(Ast.Expr.BinOp b) { 
       Visit(b.Item.Lhs);
       Visit(b.Item.Rhs);
       if (b.Item.Lhs.ActualType == b.Item.Rhs.ActualType) {
-          b.ActualType = b.Item.Lhs.ActualType;
-          // TODO propagate type or return new type for each of
-          // TODO check if op is defined for type params
-          var op = b.Item.Op;
-          Debug.Assert(b.ActualType.IsIntType || b.ActualType.IsFloatType);
+          Ast.Binary op = b.Item.Op;
+          // Determine type of b
+          // Check if op is defined for operands
+          if (op.IsOpMul || op.IsOpDiv || op.IsOpPlus || op.IsOpMinus) {
+            b.ActualType = b.Item.Lhs.ActualType;
+            Debug.Assert(b.ActualType.IsIntType || b.ActualType.IsFloatType);
+          } else {
+            b.ActualType = Ast.Type.BoolType;
+            Ast.Type type = b.Item.Lhs.ActualType;
+            Debug.Assert(type.IsIntType || type.IsFloatType || type.IsBoolType);
+          }
       } else {
           System.Console.WriteLine("Type Mismatch " + b.Item.Lhs.ActualType + " " + b.Item.Rhs.ActualType);
       }
@@ -159,7 +161,12 @@ namespace CoalLang
       Visit(u.Item.Lhs);
       u.ActualType = u.Item.Lhs.ActualType;
       // TODO check if op is defined for type params
-      Debug.Assert(u.ActualType.IsFloatType || u.ActualType.IsIntType);
+      var op = u.Item.Op;
+      if (op.IsOpDecr || op.IsOpIncr || op.IsOpValNegate) {
+         Debug.Assert(u.ActualType == Ast.Type.FloatType || u.ActualType == Ast.Type.IntType);
+      } else {
+         Debug.Assert(u.ActualType == Ast.Type.BoolType);
+      }
     }
     private void Visit(Ast.Expr e)
     {
