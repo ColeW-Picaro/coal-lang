@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 using Microsoft.FSharp.Collections;
 
@@ -7,10 +8,18 @@ namespace CoalLang
   public class TypeCheckingVisitor : IVisitor
   {
     Ast.Prog m_prog;
+    List<string> m_errorList;
     public TypeCheckingVisitor(Ast.Prog prog) {
       this.m_prog = prog;
+      this.m_errorList = new List<string>();
       // Visits
       Visit();
+    }
+
+    public void printErrorList() {
+        foreach (var e in m_errorList) {
+            System.Console.WriteLine(e);
+        }
     }
 
     public void Visit() {
@@ -63,7 +72,10 @@ namespace CoalLang
       Visit(a.Item.Lhs);
       // RHS
       Visit(a.Item.Rhs);
-      Debug.Assert(a.Item.Lhs.ActualType == a.Item.Lhs.ActualType);
+      if (a.Item.Lhs.ActualType != a.Item.Rhs.ActualType) {
+          m_errorList.Add("Type Error: Cannot assign " + a.Item.Rhs.ActualType
+                          + " to variable of type " + a.Item.Lhs.ActualType);
+      }
     }
     public void Visit(Ast.Stmt.While w)
     {
@@ -91,7 +103,11 @@ namespace CoalLang
     public void Visit(Ast.Stmt.Vardef v) { 
       if (v.Item.Expr != null) {
         Visit(v.Item.Expr.Value);
-        Debug.Assert(v.Item.Formal.Type == v.Item.Expr.Value.ActualType);
+        if (v.Item.Formal.Type != v.Item.Expr.Value.ActualType) {
+           m_errorList.Add("Type Error: Cannot assign " + v.Item.Expr.Value.ActualType
+                          + " to variable of type " + v.Item.Formal.Type);
+        }
+
       }
     }
     public void Visit(Ast.Stmt.Funcdef f) { 
@@ -104,7 +120,12 @@ namespace CoalLang
       Visit(r.Item.Expr.Value);
       Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
       Ast.Expr e = r.Item.Expr.Value;
-      Debug.Assert(fd.Item.Formal.Type == e.ActualType);
+      if (fd.Item.Formal.Type != e.ActualType) {
+          m_errorList.Add("Type Error: Cannot return " + e.ActualType +
+                          " from function " + fd.Item.Formal.Name +
+                          " returning " + fd.Item.Formal.Type);
+      }
+
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
@@ -134,7 +155,10 @@ namespace CoalLang
         var actualList = SeqModule.ToList(f.Item.ExprList);
         var actualAndFormal = ListModule.Zip(actualList, formalList);
         foreach (var af in actualAndFormal) {
-            Debug.Assert(af.Item1.ActualType == af.Item2.Formal.Type);
+            if (af.Item1.ActualType != af.Item2.Formal.Type) {
+                m_errorList.Add("Type Error: Cannot use actual paramater of type " + af.Item1.ActualType +
+                                " for formal paramater of type " + af.Item2.Formal.Type);
+            }
         }
         f.ActualType = fd.Item.Formal.Type;
     }
@@ -146,26 +170,41 @@ namespace CoalLang
           // Determine type of b
           // Check if op is defined for operands
           if (op.IsOpMul || op.IsOpDiv || op.IsOpPlus || op.IsOpMinus) {
+            // Arithmetic op
             b.ActualType = b.Item.Lhs.ActualType;
-            Debug.Assert(b.ActualType.IsIntType || b.ActualType.IsFloatType);
+            if (!b.ActualType.IsIntType && !b.ActualType.IsFloatType) {
+                m_errorList.Add("Type Error: Operator " + op + " is not defined for operands of type " +
+                                b.Item.Lhs.ActualType + " and " + b.Item.Rhs.ActualType);
+            }
+
           } else {
+            // Logic op
             b.ActualType = Ast.Type.BoolType;
             Ast.Type type = b.Item.Lhs.ActualType;
-            Debug.Assert(type.IsIntType || type.IsFloatType || type.IsBoolType);
+            if (!type.IsIntType && !type.IsFloatType && !type.IsBoolType) {
+               m_errorList.Add("Type Error: Operator " + op + " is not defined for operands of type " +
+                                b.Item.Lhs.ActualType + " and " + b.Item.Rhs.ActualType);
+            }
           }
       } else {
-          System.Console.WriteLine("Type Mismatch " + b.Item.Lhs.ActualType + " " + b.Item.Rhs.ActualType);
+          m_errorList.Add("Type Error: Mismatch " + b.Item.Lhs.ActualType + " " + b.Item.Rhs.ActualType);
       }
     }
     public void Visit(Ast.Expr.UnOp u) { 
       Visit(u.Item.Lhs);
       u.ActualType = u.Item.Lhs.ActualType;
-      // TODO check if op is defined for type params
+      // check if op is defined for type params
       var op = u.Item.Op;
       if (op.IsOpDecr || op.IsOpIncr || op.IsOpValNegate) {
-         Debug.Assert(u.ActualType == Ast.Type.FloatType || u.ActualType == Ast.Type.IntType);
+          if (u.ActualType != Ast.Type.FloatType && u.ActualType != Ast.Type.IntType) {
+              m_errorList.Add("Type Error: Operator " + op + " is not defined for operand of type " +
+                              u.ActualType);
+          }
       } else {
-         Debug.Assert(u.ActualType == Ast.Type.BoolType);
+          if (u.ActualType != Ast.Type.BoolType) {
+              m_errorList.Add("Type Error: Operator " + op + " is not defined for operand of type " +
+                              u.ActualType);
+          }
       }
     }
     private void Visit(Ast.Expr e)

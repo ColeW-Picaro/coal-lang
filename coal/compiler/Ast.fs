@@ -35,6 +35,7 @@ module rec Ast =
   | OpIncr
   | OpDecr
 
+  // Class for each type of expr
   type Formal(name : string, t : Type) =
     member this.Name = name
     member this.Type = t
@@ -77,6 +78,7 @@ module rec Ast =
     abstract GetActualType: unit -> Type
     abstract SetActualType: Type -> unit
 
+  // Expr union, contains get and set functions for types
   type Expr = 
     | VarRef of VarRefType
     | Int of IntLit
@@ -105,6 +107,7 @@ module rec Ast =
           | UnOp u -> u.ActualType <- t
           | _ -> ()
 
+  // Stmt union
   type Stmt =
   | Assign of AssignType
   | While of WhileType
@@ -115,6 +118,7 @@ module rec Ast =
   | Expr of ExprType
   | Return of ReturnType
 
+  // Classes for every type of Stmt
   type AssignType(lhs: Expr, rhs: Expr) =
     member this.Lhs = lhs
     member this.Rhs = rhs
@@ -147,6 +151,7 @@ module rec Ast =
     member this.Expr = expr
     member val Decl: Stmt option = None with get, set
 
+  // Used by the parser to build ast types
   let MakeAssign t =
     Assign(AssignType t)
 

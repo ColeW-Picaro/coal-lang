@@ -12,13 +12,13 @@ namespace CoalLang
     public SymbolTable m_symbolTable;
     public SymbolTableVisitor(SymbolTable st) {
       this.m_FunctionStack = new Stack<Ast.Stmt.Funcdef>();
-      // this.m_FunctionStack.Push((Ast.Stmt.Funcdef) Ast.MakeFuncdef(new Ast.Formal("Name", Ast.Type.IntType), null, null));
       this.m_symbolTable = st;
       // Visits
       Visit();
     }
 
     public void Visit() {
+      // Go through $global space
       foreach(var s in this.m_symbolTable.m_prog.Item) {
         switch (s) {
           case Ast.Stmt.Vardef v:
@@ -127,7 +127,8 @@ namespace CoalLang
     public void Visit(Ast.Stmt.Return r) { 
       Visit(r.Item.Expr.Value);
       if (this.m_FunctionStack.Count == 0) {
-        r.Item.Decl = (Ast.Stmt.Funcdef) Ast.Stmt.Funcdef.NewFuncdef(new Ast.FuncdefType(new System.Tuple<Ast.Formal, FSharpList<Ast.VardefType>, Ast.Stmt>(new Ast.Formal("Main", Ast.Type.IntType), null, null)));
+        r.Item.Decl = (Ast.Stmt.Funcdef) Ast.Stmt.Funcdef.NewFuncdef(new Ast.FuncdefType(new System.Tuple<Ast.Formal, FSharpList<Ast.VardefType>, Ast.Stmt>(new Ast.Formal("$global", Ast.Type.IntType), null, null)));
+        // FuncionStack is no longer needed, anything after returning $global is not allowed
       } else {
         r.Item.Decl = this.m_FunctionStack.Peek();
       }

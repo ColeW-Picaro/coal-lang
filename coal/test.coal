@@ -5,7 +5,7 @@
       return b;
   end
 
-  let foo (a:int) : int do
+  let foo (a:int) : string do
     let sum : int = a + a;
     let prod : int = a * a;
     let b : int = b / 1;
@@ -17,5 +17,5 @@
 
   let c : string;
   let name : string = "Hello, world!";
-  name = "Hello world!";
+  name = 4;
   return 0;
