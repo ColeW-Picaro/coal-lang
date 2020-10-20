@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="FSharp.Core" Version="4.7.0.0" />
     <PackageReference Include="Optional" Version="4.0.0" />
+    <PackageReference Include="LLVMSharp" Version="8.0.0-beta"/>
   </ItemGroup>
 
   <PropertyGroup>
