@@ -17,5 +17,10 @@
 
   let c : string;
   let name : string = "Hello, world!";
-  name = 4;
+  let stringvar : string = 8;
+  name = 6;
+  4 <= 4.2;
+  foo("String");
+  hello();
+
   return 0;

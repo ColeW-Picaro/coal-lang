@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Microsoft.FSharp.Core;
 using Microsoft.FSharp.Collections;
 
+using Optional;
+
 namespace CoalLang
 {
   public class TypeCheckingVisitor : IVisitor
@@ -127,11 +129,12 @@ namespace CoalLang
       }
 
     }
+
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
-      FSharpOption<Ast.Stmt> d = vr.Item.Decl;
-      Ast.Stmt.Vardef vd = (Ast.Stmt.Vardef) d.Value;
-      vr.ActualType = vd.Item.Formal.Type;
+        if (vr.Item.Decl != null) {
+            vr.ActualType = ((Ast.Stmt.Vardef) vr.Item.Decl.Value).Item.Formal.Type;
+        }
     }
     public void Visit(Ast.Expr.Int i) { 
       i.ActualType = Ast.Type.IntType;
@@ -148,6 +151,9 @@ namespace CoalLang
     public void Visit(Ast.Expr.FuncCall f) {
         foreach (var e in f.Item.ExprList) {
             Visit(e);
+        }
+        if (f.Item.Decl == null) {
+          return;
         }
         Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) f.Item.Decl.Value;
         // Compare param types to decl types

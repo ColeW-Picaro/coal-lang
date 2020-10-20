@@ -16,5 +16,7 @@ let main argv =
     let st = SymbolTable tree in 
     let stv = SymbolTableVisitor st in
     let tcv = TypeCheckingVisitor tree in
-    tcv.printErrorList()
+    stv.printErrorList();
+    tcv.printErrorList();
+
     0

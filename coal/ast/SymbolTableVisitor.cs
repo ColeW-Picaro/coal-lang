@@ -10,11 +10,19 @@ namespace CoalLang
   {
     public Stack<Ast.Stmt.Funcdef> m_FunctionStack;
     public SymbolTable m_symbolTable;
+    List<string> m_errorList;
     public SymbolTableVisitor(SymbolTable st) {
       this.m_FunctionStack = new Stack<Ast.Stmt.Funcdef>();
+      this.m_errorList = new List<string>();
       this.m_symbolTable = st;
       // Visits
       Visit();
+    }
+
+    public void printErrorList() {
+        foreach (var e in m_errorList) {
+            System.Console.WriteLine(e);
+        }
     }
 
     public void Visit() {
@@ -108,7 +116,7 @@ namespace CoalLang
     }
     public void Visit(Ast.Stmt.Funcdef f) {
       this.m_FunctionStack.Push(f);
-      System.Console.WriteLine("Push " + f);
+      //System.Console.WriteLine("Push " + f);
       this.m_symbolTable.Insert(f.Item.Formal.Name, f);
       // Add formal params to defs
       this.m_symbolTable.PushNewScope();
@@ -118,7 +126,7 @@ namespace CoalLang
       }
       Visit(f.Item.Body);
       this.m_FunctionStack.Pop();
-      System.Console.WriteLine("Pop " + f);
+      //System.Console.WriteLine("Pop " + f);
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e) {
@@ -133,14 +141,16 @@ namespace CoalLang
         r.Item.Decl = this.m_FunctionStack.Peek();
       }
       Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
-      System.Console.WriteLine("Return " + fd.Item.Formal.Name);
+      //System.Console.WriteLine("Return " + fd.Item.Formal.Name);
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
       Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
-      vd.MatchSome(v => vr.Item.Decl = v);
-      System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
+      vd.Match(v => vr.Item.Decl = v,
+               () => this.m_errorList.Add("Symbol Error: No matching symbol table entry for variable " +
+                                          vr.Item.Name));
+      //System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -156,8 +166,10 @@ namespace CoalLang
     }
     public void Visit(Ast.Expr.FuncCall f) {
       Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
-      fd.MatchSome(funcdef => f.Item.Decl = funcdef);
-      System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
+      fd.Match(funcdef => f.Item.Decl = funcdef,
+               () => this.m_errorList.Add("Symbol Error: No matching symbol table entry for function " +
+                                          f.Item.Name));
+      //System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
       foreach (var e in f.Item.ExprList) {
         Visit(e);
       }
