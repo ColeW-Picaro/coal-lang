@@ -73,6 +73,8 @@ rule read =
   | ':'      { COLON }
   | ','      { COMMA }
   | '.'      { DOT }
+  | "++"     { PLUS_PLUS }
+  | "--"     { MINUS_MINUS }
   | '/'      { SLASH }
   | '*'      { STAR }
   | '-'      { MINUS }

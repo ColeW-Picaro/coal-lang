@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
-using LLVMSharp;
+using LLVMSharp.Interop;
+
 
 
 // Var dec (int, float, bool), string
@@ -172,7 +173,11 @@ namespace CoalLang
         {
             unsafe
             {
-                this.m_valueStack.Push(LLVM.ConstReal(LLVM.Int8Type(), System.Convert.ToDouble(b.Item.Value)));
+                if (b.Item.Value) {
+                    this.m_valueStack.Push(LLVM.ConstInt(LLVM.Int8Type(), (ulong) 1, 0));
+                } else {
+                    this.m_valueStack.Push(LLVM.ConstInt(LLVM.Int8Type(), (ulong) 1, 0));
+                }
             }
         }
         public void Visit(Ast.Expr.FuncCall f)
@@ -191,7 +196,6 @@ namespace CoalLang
             LLVMValueRef lhs = this.m_valueStack.Pop();
 
             LLVMValueRef expr;
-            sbyte sb;
             unsafe
             {
                 // Arithmetic operations
@@ -199,23 +203,19 @@ namespace CoalLang
                 {
                     if (b.Item.Op.IsOpPlus)
                     {
-                        sb = System.Convert.ToSByte("add");
-                        expr = LLVM.BuildFAdd(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildFAdd(lhs, rhs);
                     }
                     else if (b.Item.Op.IsOpMinus)
                     {
-                        sb = System.Convert.ToSByte("sub");
-                        expr = LLVM.BuildFSub(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildFSub(lhs, rhs);
                     }
                     else if (b.Item.Op.IsOpMul)
                     {
-                        sb = System.Convert.ToSByte("mul");
-                        expr = LLVM.BuildFMul(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildFMul(lhs, rhs);
                     }
                     else
                     {  // if (b.Item.Op.IsOpDiv) {
-                        sb = System.Convert.ToSByte("div");
-                        expr = LLVM.BuildFDiv(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildFDiv(lhs, rhs);
                     }
                     this.m_valueStack.Push(expr);
                 }
@@ -224,50 +224,43 @@ namespace CoalLang
                 {
                     if (b.Item.Op.IsOpAnd)
                     {
-                        sb = System.Convert.ToSByte("and");
-                        expr = LLVM.BuildAnd(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildAnd(lhs, rhs);
                     }
                    else if (b.Item.Op.IsOpOr)
                     {
-                        sb = System.Convert.ToSByte("or");
-                        expr = LLVM.BuildOr(this.m_builder, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildOr(lhs, rhs);
                     }
                     else
                     {
                         LLVMRealPredicate pred;
                         if (b.Item.Op.IsOpLess)
                         {
-                            sb = System.Convert.ToSByte("less");
                             pred = LLVMRealPredicate.LLVMRealULT;
                         }
                         else if (b.Item.Op.IsOpGreater)
                         {
-                            sb = System.Convert.ToSByte("greater");
                             pred = LLVMRealPredicate.LLVMRealUGT;
                         }
                         else if (b.Item.Op.IsOpGreaterEqual)
                         {
-                            sb = System.Convert.ToSByte("greatereq");
                             pred = LLVMRealPredicate.LLVMRealUGE;
                         }
                         else if (b.Item.Op.IsOpLessEqual)
                         {
-                            sb = System.Convert.ToSByte("lesseq");
                             pred = LLVMRealPredicate.LLVMRealULE;
                         }
                         else if (b.Item.Op.IsOpEqual)
                         {
-                            sb = System.Convert.ToSByte("equal");
                             pred = LLVMRealPredicate.LLVMRealUEQ;
                         }
                         else
                         {
-                            sb = System.Convert.ToSByte("noteq");
                             pred = LLVMRealPredicate.LLVMRealUNE;
                         }
-                        expr = LLVM.BuildFCmp(this.m_builder, pred, lhs, rhs, &sb);
+                        expr = this.m_builder.BuildFCmp(pred, lhs, rhs);
                     }
                     this.m_valueStack.Push(expr);
+                    System.Console.WriteLine(expr);
                 }
                 // Type is string, nil, or unresolved
             }
@@ -278,30 +271,26 @@ namespace CoalLang
             LLVMValueRef operand = this.m_valueStack.Pop();
 
             LLVMValueRef expr;
-            sbyte sb;
             unsafe
             {
                 if (u.Item.Op.IsOpBoolNegate)
                 {
-                    sb = System.Convert.ToSByte("boolneg");
-                    expr = LLVM.BuildNot(this.m_builder, operand, &sb);
+                    expr = this.m_builder.BuildNot(operand);
                 }
                 else if (u.Item.Op.IsOpValNegate)
                 {
-                    sb = System.Convert.ToSByte("valneg");
-                    expr = LLVM.BuildNeg(this.m_builder, operand, &sb);
+                    expr = this.m_builder.BuildNeg(operand);
                 }
                 else if (u.Item.Op.IsOpIncr)
                 {
-                    sb = System.Convert.ToSByte("incr");
-                    expr = LLVM.BuildFAdd(this.m_builder, operand, LLVM.ConstReal(LLVM.FloatType(), 1), &sb);
+                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.FloatType(), 1));
                 }
                 else
                 {  // if (u.Item.Op.IsOpDecr) {
-                    sb = System.Convert.ToSByte("decr");
-                    expr = LLVM.BuildFAdd(this.m_builder, operand, LLVM.ConstReal(LLVM.FloatType(), -1), &sb);
+                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.FloatType(), -1));
                 }
                 this.m_valueStack.Push(expr);
+                System.Console.WriteLine(expr);
             }
         }
         private void Visit(Ast.Expr e)

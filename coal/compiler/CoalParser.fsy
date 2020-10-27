@@ -23,9 +23,9 @@ open CoalLang.Ast
 %left OR
 %left BANG_EQUAL GREATER_EQUAL LESS_EQUAL EQUAL_EQUAL GREATER LESS
 %nonassoc BOOLEXPR
+%nonassoc UMINUS
 %left MINUS PLUS
 %left SLASH STAR
-%nonassoc UMINUS
 %right PLUS_PLUS MINUS_MINUS
 %left BANG
 
@@ -85,8 +85,8 @@ Expr: Literal { $1 }
     | IDENTIFIER { MakeVarRef($1) }
     | IDENTIFIER LPAREN ParamList RPAREN { MakeFuncCall($1, $3) }
     | LPAREN Expr RPAREN { $2 }
-    | UnOp { $1 }
     | BinOp { $1 }
+    | UnOp { $1 }
     | BoolExpr %prec BOOLEXPR { $1 }
 
 Literal :
@@ -95,16 +95,18 @@ Literal :
     | STRING_LIT { String(StringLit($1)) }
     | BOOL_LIT { Bool(BoolLit($1)) }
 
-UnOp: BANG BoolExpr { MakeUnOp(OpBoolNegate, $2) }
-    | MINUS Expr %prec UMINUS { MakeUnOp(OpValNegate, $2) }
-    | PLUS_PLUS IDENTIFIER { MakeUnOp(OpIncr, MakeVarRef($2)) }
-    | MINUS_MINUS IDENTIFIER { MakeUnOp(OpDecr, MakeVarRef($2)) }
-
 BinOp:
       Expr PLUS Expr { MakeBinOp($1, OpPlus, $3) }
     | Expr MINUS Expr { MakeBinOp($1, OpMinus, $3) }
     | Expr STAR Expr { MakeBinOp($1, OpMul, $3) }
     | Expr SLASH Expr { MakeBinOp($1, OpDiv, $3) }
+
+
+UnOp: BANG BoolExpr { MakeUnOp(OpBoolNegate, $2) }
+    | MINUS Expr %prec UMINUS { MakeUnOp(OpValNegate, $2) }
+    | PLUS_PLUS IDENTIFIER { MakeUnOp(OpIncr, MakeVarRef($2)) }
+    | MINUS_MINUS IDENTIFIER { MakeUnOp(OpDecr, MakeVarRef($2)) }
+
 
 BoolExpr:
       Expr BANG_EQUAL Expr { MakeBinOp($1, OpNotEqual, $3) }
