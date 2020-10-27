@@ -23,7 +23,11 @@ namespace CoalLang
             this.m_prog = prog;
             this.m_namedValues = new Dictionary<string, LLVMValueRef>();
             this.m_valueStack = new Stack<LLVMValueRef>();
-
+            unsafe
+            {
+                this.m_builder = LLVM.CreateBuilder();
+            }
+            this.Visit();
         }
 
         public void Visit()
@@ -128,9 +132,12 @@ namespace CoalLang
         public void Visit(Ast.Expr.VarRef vr)
         {
             LLVMValueRef value;
-            if (this.m_namedValues.TryGetValue(vr.Item.Name, out value)) {
+            if (this.m_namedValues.TryGetValue(vr.Item.Name, out value))
+            {
                 this.m_valueStack.Push(value);
-            } else {
+            }
+            else
+            {
                 // Error
             }
         }
@@ -156,8 +163,8 @@ namespace CoalLang
                 byte[] bytes = Encoding.ASCII.GetBytes(s.Item.Value);
                 fixed (byte* b = bytes)
                 {
-                    sbyte* sb = (sbyte*) b;
-                    this.m_valueStack.Push(LLVM.ConstString(sb, (uint) s.Item.Value.Length, 0));
+                    sbyte* sb = (sbyte*)b;
+                    this.m_valueStack.Push(LLVM.ConstString(sb, (uint)s.Item.Value.Length, 0));
                 }
             }
         }
@@ -179,10 +186,123 @@ namespace CoalLang
         {
             Visit(b.Item.Lhs);
             Visit(b.Item.Rhs);
+
+            LLVMValueRef rhs = this.m_valueStack.Pop();
+            LLVMValueRef lhs = this.m_valueStack.Pop();
+
+            LLVMValueRef expr;
+            sbyte sb;
+            unsafe
+            {
+                // Arithmetic operations
+                if (b.ActualType.IsIntType || b.ActualType.IsFloatType)
+                {
+                    if (b.Item.Op.IsOpPlus)
+                    {
+                        sb = System.Convert.ToSByte("add");
+                        expr = LLVM.BuildFAdd(this.m_builder, lhs, rhs, &sb);
+                    }
+                    else if (b.Item.Op.IsOpMinus)
+                    {
+                        sb = System.Convert.ToSByte("sub");
+                        expr = LLVM.BuildFSub(this.m_builder, lhs, rhs, &sb);
+                    }
+                    else if (b.Item.Op.IsOpMul)
+                    {
+                        sb = System.Convert.ToSByte("mul");
+                        expr = LLVM.BuildFMul(this.m_builder, lhs, rhs, &sb);
+                    }
+                    else
+                    {  // if (b.Item.Op.IsOpDiv) {
+                        sb = System.Convert.ToSByte("div");
+                        expr = LLVM.BuildFDiv(this.m_builder, lhs, rhs, &sb);
+                    }
+                    this.m_valueStack.Push(expr);
+                }
+                // Boolean Operations
+                else if (b.ActualType.IsBoolType)
+                {
+                    if (b.Item.Op.IsOpAnd)
+                    {
+                        sb = System.Convert.ToSByte("and");
+                        expr = LLVM.BuildAnd(this.m_builder, lhs, rhs, &sb);
+                    }
+                   else if (b.Item.Op.IsOpOr)
+                    {
+                        sb = System.Convert.ToSByte("or");
+                        expr = LLVM.BuildOr(this.m_builder, lhs, rhs, &sb);
+                    }
+                    else
+                    {
+                        LLVMRealPredicate pred;
+                        if (b.Item.Op.IsOpLess)
+                        {
+                            sb = System.Convert.ToSByte("less");
+                            pred = LLVMRealPredicate.LLVMRealULT;
+                        }
+                        else if (b.Item.Op.IsOpGreater)
+                        {
+                            sb = System.Convert.ToSByte("greater");
+                            pred = LLVMRealPredicate.LLVMRealUGT;
+                        }
+                        else if (b.Item.Op.IsOpGreaterEqual)
+                        {
+                            sb = System.Convert.ToSByte("greatereq");
+                            pred = LLVMRealPredicate.LLVMRealUGE;
+                        }
+                        else if (b.Item.Op.IsOpLessEqual)
+                        {
+                            sb = System.Convert.ToSByte("lesseq");
+                            pred = LLVMRealPredicate.LLVMRealULE;
+                        }
+                        else if (b.Item.Op.IsOpEqual)
+                        {
+                            sb = System.Convert.ToSByte("equal");
+                            pred = LLVMRealPredicate.LLVMRealUEQ;
+                        }
+                        else
+                        {
+                            sb = System.Convert.ToSByte("noteq");
+                            pred = LLVMRealPredicate.LLVMRealUNE;
+                        }
+                        expr = LLVM.BuildFCmp(this.m_builder, pred, lhs, rhs, &sb);
+                    }
+                    this.m_valueStack.Push(expr);
+                }
+                // Type is string, nil, or unresolved
+            }
         }
         public void Visit(Ast.Expr.UnOp u)
         {
             Visit(u.Item.Lhs);
+            LLVMValueRef operand = this.m_valueStack.Pop();
+
+            LLVMValueRef expr;
+            sbyte sb;
+            unsafe
+            {
+                if (u.Item.Op.IsOpBoolNegate)
+                {
+                    sb = System.Convert.ToSByte("boolneg");
+                    expr = LLVM.BuildNot(this.m_builder, operand, &sb);
+                }
+                else if (u.Item.Op.IsOpValNegate)
+                {
+                    sb = System.Convert.ToSByte("valneg");
+                    expr = LLVM.BuildNeg(this.m_builder, operand, &sb);
+                }
+                else if (u.Item.Op.IsOpIncr)
+                {
+                    sb = System.Convert.ToSByte("incr");
+                    expr = LLVM.BuildFAdd(this.m_builder, operand, LLVM.ConstReal(LLVM.FloatType(), 1), &sb);
+                }
+                else
+                {  // if (u.Item.Op.IsOpDecr) {
+                    sb = System.Convert.ToSByte("decr");
+                    expr = LLVM.BuildFAdd(this.m_builder, operand, LLVM.ConstReal(LLVM.FloatType(), -1), &sb);
+                }
+                this.m_valueStack.Push(expr);
+            }
         }
         private void Visit(Ast.Expr e)
         {
