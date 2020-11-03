@@ -16,11 +16,11 @@ let newline (lexbuf: LexBuffer<_>) =
 
 }
 
-let int = ['-' '+']? ['0'-'9']+
+let int = ['0'-'9']+
 let digit = ['0'-'9']
 let frac = '.' digit*
 let exp = ['e' 'E'] ['-' '+']? digit+
-let float = '-'? digit* frac? exp?
+let float = digit* frac? exp?
 let str = '"' [^'"']* '"'
 let id = ['A'-'Z' 'a'-'z'] ['A'-'Z' 'a'-'z' '0'-'9' '_']*
 

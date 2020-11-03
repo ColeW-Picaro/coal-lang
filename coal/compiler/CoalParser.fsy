@@ -22,7 +22,6 @@ open CoalLang.Ast
 %left AND
 %left OR
 %left BANG_EQUAL GREATER_EQUAL LESS_EQUAL EQUAL_EQUAL GREATER LESS
-%nonassoc BOOLEXPR
 %nonassoc UMINUS
 %left MINUS PLUS
 %left SLASH STAR
@@ -44,16 +43,16 @@ StmtList: { [] }
 // Statements and Expressions
 Stmt: Def { $1 }
     | Assign SEMICOLON { $1 }
-    | WHILE LPAREN BoolExpr RPAREN Stmt { MakeWhile($3,$5) }
-    | UNTIL LPAREN BoolExpr RPAREN Stmt { MakeWhile(MakeUnOp(OpBoolNegate, $3),$5) }
+    | WHILE LPAREN Expr RPAREN Stmt { MakeWhile($3,$5) }
+    | UNTIL LPAREN Expr RPAREN Stmt { MakeWhile(MakeUnOp(OpBoolNegate, $3),$5) }
    // $1  $2     $3  $4         $5    $6   $7    $8   $9        $10      $11       $12  $13    $14
-    | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON BoolExpr SEMICOLON Expr RPAREN Stmt {
+    | FOR LPAREN LET IDENTIFIER COLON Type EQUAL Expr SEMICOLON Expr SEMICOLON Expr RPAREN Stmt {
         MakeSeq([ MakeVardef(Formal ($4, $6), Some $8) ; MakeWhile($10, MakeSeq [$14 ; MakeExpr($12)] )])
       }
     | DO StmtList END { MakeSeq(List.rev($2)) }
-    | IF LPAREN BoolExpr RPAREN Stmt %prec IFX { MakeIfThenElse($3,$5, None) }
-    | IF LPAREN BoolExpr RPAREN Stmt ELSE Stmt { MakeIfThenElse($3,$5, Some $7) }
-    | UNLESS LPAREN BoolExpr RPAREN Stmt { MakeIfThenElse(MakeUnOp(OpBoolNegate, $3),$5, None) }
+    | IF LPAREN Expr RPAREN Stmt %prec IFX { MakeIfThenElse($3,$5, None) }
+    | IF LPAREN Expr RPAREN Stmt ELSE Stmt { MakeIfThenElse($3,$5, Some $7) }
+    | UNLESS LPAREN Expr RPAREN Stmt { MakeIfThenElse(MakeUnOp(OpBoolNegate, $3),$5, None) }
     | Expr SEMICOLON { MakeExpr($1) }
     | ReturnStmt { $1 }
 
@@ -87,7 +86,6 @@ Expr: Literal { $1 }
     | LPAREN Expr RPAREN { $2 }
     | BinOp { $1 }
     | UnOp { $1 }
-    | BoolExpr %prec BOOLEXPR { $1 }
 
 Literal :
       INT_LIT {  Int(IntLit($1)) }
@@ -100,23 +98,19 @@ BinOp:
     | Expr MINUS Expr { MakeBinOp($1, OpMinus, $3) }
     | Expr STAR Expr { MakeBinOp($1, OpMul, $3) }
     | Expr SLASH Expr { MakeBinOp($1, OpDiv, $3) }
-
-
-UnOp: BANG BoolExpr { MakeUnOp(OpBoolNegate, $2) }
-    | MINUS Expr %prec UMINUS { MakeUnOp(OpValNegate, $2) }
-    | PLUS_PLUS IDENTIFIER { MakeUnOp(OpIncr, MakeVarRef($2)) }
-    | MINUS_MINUS IDENTIFIER { MakeUnOp(OpDecr, MakeVarRef($2)) }
-
-
-BoolExpr:
-      Expr BANG_EQUAL Expr { MakeBinOp($1, OpNotEqual, $3) }
+    | Expr BANG_EQUAL Expr { MakeBinOp($1, OpNotEqual, $3) }
     | Expr GREATER_EQUAL Expr { MakeBinOp($1, OpGreaterEqual, $3) }
     | Expr LESS_EQUAL Expr { MakeBinOp($1, OpLessEqual, $3) }
     | Expr EQUAL_EQUAL Expr { MakeBinOp($1, OpEqual, $3) }
     | Expr LESS Expr { MakeBinOp($1, OpLess, $3) }
     | Expr GREATER Expr { MakeBinOp($1, OpGreater, $3) }
-    | BoolExpr AND BoolExpr { MakeBinOp($1, OpAnd, $3) }
-    | BoolExpr OR BoolExpr { MakeBinOp($1, OpOr, $3) }
+    | Expr AND Expr { MakeBinOp($1, OpAnd, $3) }
+    | Expr OR Expr { MakeBinOp($1, OpOr, $3) }
+
+UnOp: BANG Expr { MakeUnOp(OpBoolNegate, $2) }
+    | MINUS Expr %prec UMINUS { MakeUnOp(OpValNegate, $2) }
+    | PLUS_PLUS IDENTIFIER { MakeUnOp(OpIncr, MakeVarRef($2)) }
+    | MINUS_MINUS IDENTIFIER { MakeUnOp(OpDecr, MakeVarRef($2)) }
 
 Type: STRING { StringType }
     | INT { IntType }
