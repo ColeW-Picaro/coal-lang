@@ -1,4 +1,3 @@
-let c : string = "hello";
 4.2 <= 4.1;
 4.2 >= 4.1;
 4.2 < 4.1;
@@ -22,4 +21,7 @@ false && false;
 2 / 2;
 2 * 2;
 ((1 + 2) - (5 - 1)) * 7;
+while (true) do
+  1 + 1;
+end
 return 0;

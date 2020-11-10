@@ -33,6 +33,7 @@ namespace CoalLang
 
         public void Visit()
         {
+            System.Console.WriteLine("Code Gen");
             Visit(this.m_prog);
         }
         // Visit methods for every relevant Ast type
@@ -41,7 +42,8 @@ namespace CoalLang
         {
             foreach (var stmt in prog.Item)
             {
-                Visit(stmt);
+                var v = Visit(stmt);
+                System.Console.WriteLine(v);
             }
         }
 
@@ -64,7 +66,6 @@ namespace CoalLang
                     return Visit(f);
                 case Ast.Stmt.Expr e:
                     LLVMBasicBlockRef bb = Visit(e);
-                    System.Console.WriteLine(bb);
                     return bb;
                 case Ast.Stmt.Return r:
                     return Visit(r);
@@ -90,11 +91,21 @@ namespace CoalLang
         public LLVMBasicBlockRef Visit(Ast.Stmt.While w)
         {
             // Cond
-            Visit(w.Item.Cond);
+            LLVMValueRef cond = Visit(w.Item.Cond);
             // Body
-            Visit(w.Item.Body);
-            LLVMBasicBlockRef bb = null;
-            return bb;
+            LLVMBasicBlockRef body = Visit(w.Item.Body);
+            unsafe
+            {
+                // Construct end basic block with nop instr (lol)
+                LLVMValueRef ret = this.m_builder.BuildRetVoid();
+                LLVMBasicBlockRef end = LLVM.ValueAsBasicBlock(ret);
+                LLVMValueRef wh = this.m_builder.BuildCondBr(cond, body, end);
+                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(wh);
+                LLVMValueRef br = this.m_builder.BuildBr(bb);
+                System.Console.WriteLine(wh);
+                LLVM.AppendExistingBasicBlock(br, bb);
+                return bb;
+            }
         }
         public LLVMBasicBlockRef Visit(Ast.Stmt.Seq s)
         {
@@ -120,15 +131,24 @@ namespace CoalLang
         public LLVMBasicBlockRef Visit(Ast.Stmt.IfThenElse i)
         {
             // Cond
-            Visit(i.Item.Cond);
+            LLVMValueRef cond = Visit(i.Item.Cond);
             // If body
-            Visit(i.Item.Body);
+            LLVMBasicBlockRef body = Visit(i.Item.Body);
+
+            LLVMValueRef vr;
             // Else body
             if (i.Item.ElseBody != null)
             {
-                Visit(i.Item.ElseBody.Value);
+                LLVMBasicBlockRef elsebody = Visit(i.Item.ElseBody.Value);
+                vr = this.m_builder.BuildCondBr(cond, body, elsebody);
             }
-            return null;
+            vr = this.m_builder.BuildCondBr(cond, body, null);
+            unsafe
+            {
+                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(vr);
+                return bb;
+            }
+
         }
         public LLVMBasicBlockRef Visit(Ast.Stmt.Vardef v)
         {
@@ -160,7 +180,6 @@ namespace CoalLang
                 else if (v.Item.Expr.Value.IsString)
                 {
                     //def = this.m_builder.BuildGlobalString((string) v.Item.Expr.Value);
-
                 }
             }
             unsafe
@@ -185,7 +204,6 @@ namespace CoalLang
             unsafe
             {
                 LLVMValueRef bb = Visit(e.Item.Expr);
-                System.Console.WriteLine(bb);
                 return LLVM.ValueAsBasicBlock(bb);
             }
         }
@@ -360,7 +378,6 @@ namespace CoalLang
                     expr = null;
                 }
                 // Type is string, nil, or unresolved
-                System.Console.WriteLine(expr);
             }
             return expr;
         }
@@ -401,7 +418,6 @@ namespace CoalLang
                     expr = null;
                 }
                 this.m_valueStack.Push(expr);
-                System.Console.WriteLine(expr);
             }
             return expr;
         }
