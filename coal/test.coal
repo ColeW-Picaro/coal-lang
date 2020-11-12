@@ -21,7 +21,7 @@ false && false;
 2 / 2;
 2 * 2;
 ((1 + 2) - (5 - 1)) * 7;
-while (true) do
-  1 + 1;
-end
+let a : int = 1;
+let b : int = 2;
+let c : int = a + b;
 return 0;

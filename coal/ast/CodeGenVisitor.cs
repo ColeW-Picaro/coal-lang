@@ -1,7 +1,8 @@
 using System.Collections.Generic;
 using System.Text;
+using System.Runtime.InteropServices;
+using System;
 using LLVMSharp.Interop;
-
 
 
 // Var dec (int, float, bool), string
@@ -18,12 +19,15 @@ namespace CoalLang
         LLVMBuilderRef m_builder;
         Dictionary<string, LLVMValueRef> m_namedValues;
         Stack<LLVMValueRef> m_valueStack;
+        Stack<LLVMValueRef> m_funcStack;
 
         public CodeGenVisitor(Ast.Prog prog)
         {
             this.m_prog = prog;
             this.m_namedValues = new Dictionary<string, LLVMValueRef>();
             this.m_valueStack = new Stack<LLVMValueRef>();
+            this.m_funcStack = new Stack<LLVMValueRef>();
+            //this.m_module = LLVM.ModuleCreateWithName("mod");
             unsafe
             {
                 this.m_builder = LLVM.CreateBuilder();
@@ -33,8 +37,19 @@ namespace CoalLang
 
         public void Visit()
         {
-            System.Console.WriteLine("Code Gen");
+            LLVMTypeRef[] paramType = { };
+            var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Void, paramType);
+            var func = m_module.AddFunction("main", funcType);
+            var entry = func.AppendBasicBlock("entry");
+            var body = func.AppendBasicBlock("body");
+            m_builder.PositionAtEnd(body);
+            this.m_funcStack.Push(func);
             Visit(this.m_prog);
+            this.m_funcStack.Pop();
+            m_builder.BuildRetVoid();
+            m_builder.PositionAtEnd(entry);
+            m_builder.BuildBr(body);
+            System.Console.WriteLine(func);
         }
         // Visit methods for every relevant Ast type
         // Looking for Vardefs and VarRefs to insert into the symbol table
@@ -42,115 +57,99 @@ namespace CoalLang
         {
             foreach (var stmt in prog.Item)
             {
-                var v = Visit(stmt);
-                System.Console.WriteLine(v);
+                Visit(stmt);
             }
         }
 
         // Stmt
-        public LLVMBasicBlockRef Visit(Ast.Stmt stmt)
+        public void Visit(Ast.Stmt stmt)
         {
             switch (stmt)
             {
                 case Ast.Stmt.Assign a:
-                    return Visit(a);
+                    Visit(a);
+                    break;
                 case Ast.Stmt.While w:
-                    return Visit(w);
+                    Visit(w);
+                    break;
                 case Ast.Stmt.Seq s:
-                    return Visit(s);
+                    Visit(s);
+                    break;
                 case Ast.Stmt.IfThenElse i:
-                    return Visit(i);
+                    Visit(i);
+                    break;
                 case Ast.Stmt.Vardef v:
-                    return Visit(v);
+                    Visit(v);
+                    break;
                 case Ast.Stmt.Funcdef f:
-                    return Visit(f);
+                    Visit(f);
+                    break;
                 case Ast.Stmt.Expr e:
-                    LLVMBasicBlockRef bb = Visit(e);
-                    return bb;
+                    Visit(e);
+                    break;
                 case Ast.Stmt.Return r:
-                    return Visit(r);
-                default:
-                    return null;
+                    Visit(r);
+                    break;
             }
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Assign a)
+        public void Visit(Ast.Stmt.Assign a)
         {
             // RHS
             LLVMValueRef rhs = Visit(a.Item.Rhs);
             // LHS
             LLVMValueRef lhs = Visit(a.Item.Lhs);
             LLVMValueRef assign = this.m_builder.BuildStore(lhs, rhs);
-            unsafe
-            {
-                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(rhs);
-                LLVM.AppendExistingBasicBlock(lhs, bb);
-                LLVM.AppendExistingBasicBlock(assign, bb);
-                return bb;
-            }
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.While w)
+        public void Visit(Ast.Stmt.While w)
         {
+            /*
             // Cond
             LLVMValueRef cond = Visit(w.Item.Cond);
             // Body
-            LLVMBasicBlockRef body = Visit(w.Item.Body);
+            Visit(w.Item.Body);
             unsafe
             {
-                // Construct end basic block with nop instr (lol)
-                LLVMValueRef ret = this.m_builder.BuildRetVoid();
-                LLVMBasicBlockRef end = LLVM.ValueAsBasicBlock(ret);
-                LLVMValueRef wh = this.m_builder.BuildCondBr(cond, body, end);
-                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(wh);
-                LLVMValueRef br = this.m_builder.BuildBr(bb);
-                System.Console.WriteLine(wh);
-                LLVM.AppendExistingBasicBlock(br, bb);
-                return bb;
+                LLVMValueRef wh = this.m_builder.BuildCondBr(cond, body, null);
+                return LLVM.ValueAsBasicBlock(wh);
             }
+            */
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Seq s)
+        public void Visit(Ast.Stmt.Seq s)
         {
+            foreach (var v in s.Item.Body)
+            {
+                Visit(v);
+            }
+
+        }
+        public void Visit(Ast.Stmt.IfThenElse i)
+        {
+            /*
             unsafe
             {
-                LLVMBasicBlockRef bb = null;
-                bool first = true;
-                foreach (var v in s.Item.Body)
+
+                // Cond
+                LLVMValueRef cond = Visit(i.Item.Cond);
+                // If body
+                LLVMBasicBlockRef body = Visit(i.Item.Body);
+
+                LLVMValueRef func = LLVM.GetBasicBlockParent(LLVM.GetInsertBlock(this.m_builder));
+
+                LLVMValueRef vr;
+                // Else body
+                if (i.Item.ElseBody != null)
                 {
-                    if (first) {
-                        first = false;
-                        bb = LLVM.ValueAsBasicBlock(Visit(v));
-                    }
-                    else
-                    {
-                        LLVM.AppendExistingBasicBlock(Visit(v), bb);
-                    }
+                    LLVMBasicBlockRef elsebody = Visit(i.Item.ElseBody.Value);
+                    vr = this.m_builder.BuildCondBr(cond, body, elsebody);
+                } else {
+                    vr = this.m_builder.BuildCondBr(cond, body, null);
                 }
-                return bb;
-            }
-
-        }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.IfThenElse i)
-        {
-            // Cond
-            LLVMValueRef cond = Visit(i.Item.Cond);
-            // If body
-            LLVMBasicBlockRef body = Visit(i.Item.Body);
-
-            LLVMValueRef vr;
-            // Else body
-            if (i.Item.ElseBody != null)
-            {
-                LLVMBasicBlockRef elsebody = Visit(i.Item.ElseBody.Value);
-                vr = this.m_builder.BuildCondBr(cond, body, elsebody);
-            }
-            vr = this.m_builder.BuildCondBr(cond, body, null);
-            unsafe
-            {
                 LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(vr);
                 return bb;
             }
-
+            */
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Vardef v)
+        public void Visit(Ast.Stmt.Vardef v)
         {
             LLVMValueRef expr;
             if (v.Item.Expr != null)
@@ -162,36 +161,39 @@ namespace CoalLang
                 expr = null;
             }
             LLVMValueRef def = null;
+            var tmpB = m_module.Context.CreateBuilder();
+            tmpB.PositionAtEnd(m_funcStack.Peek().EntryBasicBlock);
             unsafe
             {
                 if (v.Item.Formal.Type.IsIntType)
                 {
-                    def = this.m_builder.BuildAlloca(LLVM.Int32Type(), v.Item.Formal.Name);
+                    def = tmpB.BuildAlloca(LLVMTypeRef.Int32, v.Item.Formal.Name);
+                    System.Console.WriteLine("int");
                     this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Formal.Type.IsFloatType)
                 {
-                    def = this.m_builder.BuildAlloca(LLVM.FloatType(), v.Item.Formal.Name);
+                    def = tmpB.BuildAlloca(LLVMTypeRef.Float, v.Item.Formal.Name);
+                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Formal.Type.IsBoolType)
                 {
-                    def = this.m_builder.BuildAlloca(LLVM.Int1Type(), v.Item.Formal.Name);
+                    def = tmpB.BuildAlloca(LLVMTypeRef.Int1, v.Item.Formal.Name);
+                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Expr.Value.IsString)
                 {
-                    //def = this.m_builder.BuildGlobalString((string) v.Item.Expr.Value);
+                    string s = (v.Item.Expr.Value.ToString());
+                    def = this.m_builder.BuildGlobalString(s);
+                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
-            }
-            unsafe
-            {
-                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(def);
+
                 if (expr != null)
                 {
-                    LLVMValueRef init = this.m_builder.BuildStore(def, expr);
-                    LLVM.AppendExistingBasicBlock(init, bb);
+                    this.m_builder.BuildStore(def, expr);
                 }
-                return bb;
             }
+            tmpB.Dispose();
 
         }
         public LLVMBasicBlockRef Visit(Ast.Stmt.Funcdef f)
@@ -199,13 +201,9 @@ namespace CoalLang
             Visit(f.Item.Body);
             return null;
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Expr e)
+        public void Visit(Ast.Stmt.Expr e)
         {
-            unsafe
-            {
-                LLVMValueRef bb = Visit(e.Item.Expr);
-                return LLVM.ValueAsBasicBlock(bb);
-            }
+            Visit(e.Item.Expr);
         }
         public LLVMBasicBlockRef Visit(Ast.Stmt.Return r)
         {
