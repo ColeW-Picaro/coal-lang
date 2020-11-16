@@ -1,7 +1,5 @@
 using System.Collections.Generic;
 using System.Text;
-using System.Runtime.InteropServices;
-using System;
 using LLVMSharp.Interop;
 
 
@@ -27,7 +25,11 @@ namespace CoalLang
             this.m_namedValues = new Dictionary<string, LLVMValueRef>();
             this.m_valueStack = new Stack<LLVMValueRef>();
             this.m_funcStack = new Stack<LLVMValueRef>();
-            //this.m_module = LLVM.ModuleCreateWithName("mod");
+            unsafe
+            {
+                fixed (byte* ptr = Encoding.ASCII.GetBytes("mod"))
+                    this.m_module = LLVM.ModuleCreateWithName((sbyte*) ptr);
+            }
             unsafe
             {
                 this.m_builder = LLVM.CreateBuilder();
@@ -168,7 +170,6 @@ namespace CoalLang
                 if (v.Item.Formal.Type.IsIntType)
                 {
                     def = tmpB.BuildAlloca(LLVMTypeRef.Int32, v.Item.Formal.Name);
-                    System.Console.WriteLine("int");
                     this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Formal.Type.IsFloatType)
