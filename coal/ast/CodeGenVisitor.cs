@@ -15,15 +15,13 @@ namespace CoalLang
         Ast.Prog m_prog;
         LLVMModuleRef m_module;
         LLVMBuilderRef m_builder;
-        Dictionary<string, LLVMValueRef> m_namedValues;
-        Stack<LLVMValueRef> m_valueStack;
+        List<Dictionary<string, LLVMValueRef>> m_namedValues;
         Stack<LLVMValueRef> m_funcStack;
 
         public CodeGenVisitor(Ast.Prog prog)
         {
             this.m_prog = prog;
-            this.m_namedValues = new Dictionary<string, LLVMValueRef>();
-            this.m_valueStack = new Stack<LLVMValueRef>();
+            this.m_namedValues = new List<Dictionary<string, LLVMValueRef>>();
             this.m_funcStack = new Stack<LLVMValueRef>();
             unsafe
             {
@@ -39,6 +37,7 @@ namespace CoalLang
 
         public void Visit()
         {
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
             LLVMTypeRef[] paramType = { };
             var funcType = LLVMTypeRef.CreateFunction(LLVMTypeRef.Void, paramType);
             var func = m_module.AddFunction("main", funcType);
@@ -51,7 +50,7 @@ namespace CoalLang
             m_builder.BuildRetVoid();
             m_builder.PositionAtEnd(entry);
             m_builder.BuildBr(body);
-            System.Console.WriteLine(func);
+            System.Console.WriteLine(this.m_module);
         }
         // Visit methods for every relevant Ast type
         // Looking for Vardefs and VarRefs to insert into the symbol table
@@ -104,52 +103,53 @@ namespace CoalLang
         }
         public void Visit(Ast.Stmt.While w)
         {
-            /*
+            var func = this.m_funcStack.Peek();
+            var loopBB = func.AppendBasicBlock("loop");
+            var exitBB = func.AppendBasicBlock("exit");
+            var bodyBB = func.AppendBasicBlock("body");
+            this.m_builder.BuildBr(loopBB);
+            this.m_builder.PositionAtEnd(loopBB);
             // Cond
             LLVMValueRef cond = Visit(w.Item.Cond);
-            // Body
+            this.m_builder.BuildCondBr(cond, bodyBB, exitBB);
+            this.m_builder.PositionAtEnd(bodyBB);
+            //  Body
             Visit(w.Item.Body);
-            unsafe
-            {
-                LLVMValueRef wh = this.m_builder.BuildCondBr(cond, body, null);
-                return LLVM.ValueAsBasicBlock(wh);
-            }
-            */
+            this.m_builder.BuildBr(loopBB);
+            this.m_builder.PositionAtEnd(exitBB);
+          
         }
         public void Visit(Ast.Stmt.Seq s)
         {
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
             foreach (var v in s.Item.Body)
             {
                 Visit(v);
             }
-
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
         }
         public void Visit(Ast.Stmt.IfThenElse i)
         {
-            /*
             unsafe
             {
-
                 // Cond
                 LLVMValueRef cond = Visit(i.Item.Cond);
-                // If body
-                LLVMBasicBlockRef body = Visit(i.Item.Body);
-
-                LLVMValueRef func = LLVM.GetBasicBlockParent(LLVM.GetInsertBlock(this.m_builder));
-
-                LLVMValueRef vr;
-                // Else body
+                var func = this.m_funcStack.Peek();
+                var bodyBB = func.AppendBasicBlock("body");
+                var elseBB = func.AppendBasicBlock("else");
+                var contBB = func.AppendBasicBlock("cont");
+                this.m_builder.BuildCondBr(cond, bodyBB, elseBB);
+                this.m_builder.PositionAtEnd(bodyBB);
+                Visit(i.Item.Body);
+                this.m_builder.BuildBr(contBB);
+                this.m_builder.PositionAtEnd(elseBB);
                 if (i.Item.ElseBody != null)
                 {
-                    LLVMBasicBlockRef elsebody = Visit(i.Item.ElseBody.Value);
-                    vr = this.m_builder.BuildCondBr(cond, body, elsebody);
-                } else {
-                    vr = this.m_builder.BuildCondBr(cond, body, null);
+                    Visit(i.Item.ElseBody.Value);
                 }
-                LLVMBasicBlockRef bb = LLVM.ValueAsBasicBlock(vr);
-                return bb;
+                this.m_builder.BuildBr(contBB);
+                this.m_builder.PositionAtEnd(contBB);
             }
-            */
         }
         public void Visit(Ast.Stmt.Vardef v)
         {
@@ -170,25 +170,21 @@ namespace CoalLang
                 if (v.Item.Formal.Type.IsIntType)
                 {
                     def = tmpB.BuildAlloca(LLVMTypeRef.Int32, v.Item.Formal.Name);
-                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Formal.Type.IsFloatType)
                 {
                     def = tmpB.BuildAlloca(LLVMTypeRef.Float, v.Item.Formal.Name);
-                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Formal.Type.IsBoolType)
                 {
                     def = tmpB.BuildAlloca(LLVMTypeRef.Int1, v.Item.Formal.Name);
-                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
                 else if (v.Item.Expr.Value.IsString)
                 {
                     string s = (v.Item.Expr.Value.ToString());
                     def = this.m_builder.BuildGlobalString(s);
-                    this.m_namedValues.Add(v.Item.Formal.Name, def);
                 }
-
+                this.m_namedValues[this.m_namedValues.Count - 1].Add(v.Item.Formal.Name, def);
                 if (expr != null)
                 {
                     this.m_builder.BuildStore(def, expr);
@@ -197,26 +193,59 @@ namespace CoalLang
             tmpB.Dispose();
 
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Funcdef f)
+        private LLVMTypeRef typeToLLVMType(Ast.Type t)
         {
+            LLVMTypeRef type = null;
+            if (t.IsNilType)
+                return LLVMTypeRef.Void;
+            else if (t.IsBoolType)
+                return LLVMTypeRef.Int1;
+            else if (t.IsIntType)
+                return LLVMTypeRef.Int32;
+            else if (t.IsFloatType)
+                return LLVMTypeRef.Float;
+            else
+                return LLVMTypeRef.Void;
+        }
+        public void Visit(Ast.Stmt.Funcdef f)
+        {
+            LLVMTypeRef type = typeToLLVMType(f.Item.Formal.Type);
+            LLVMTypeRef[] paramTypes = new LLVMTypeRef[f.Item.FormalList.Length];
+            for (int i = 0; i < f.Item.FormalList.Length; ++i)
+            {
+                paramTypes[i] = typeToLLVMType(f.Item.FormalList[i].Formal.Type);
+            }
+            LLVMTypeRef funcType = LLVMTypeRef.CreateFunction(type, paramTypes, false);
+            LLVMValueRef func = this.m_module.AddFunction(f.Item.Formal.Name, funcType);
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
+            for (int i = 0; i < f.Item.FormalList.Length; ++i)
+            {
+                this.m_namedValues[this.m_namedValues.Count - 1].Add(f.Item.FormalList[i].Formal.Name, func.Params[i]);
+            }
+            var insert = this.m_builder.InsertBlock;
+            var body = func.AppendBasicBlock($"body_{f.Item.Formal.Name}");
+            this.m_builder.PositionAtEnd(body);
             Visit(f.Item.Body);
-            return null;
+            this.m_builder.PositionAtEnd(insert);
+            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
         }
         public void Visit(Ast.Stmt.Expr e)
         {
             Visit(e.Item.Expr);
         }
-        public LLVMBasicBlockRef Visit(Ast.Stmt.Return r)
+        public void Visit(Ast.Stmt.Return r)
         {
-            Visit(r.Item.Expr.Value);
-            return null;
+            var retval = Visit(r.Item.Expr.Value);
+            this.m_builder.BuildRet(retval);
         }
         // Expr
         public LLVMValueRef Visit(Ast.Expr.VarRef vr)
         {
-            LLVMValueRef value;
-            this.m_namedValues.TryGetValue(vr.Item.Name, out value);
-            this.m_valueStack.Push(value);
+            LLVMValueRef value = null;
+            for(int i = this.m_namedValues.Count - 1; i --> 0;) {
+                this.m_namedValues[i].TryGetValue(vr.Item.Name, out value);
+                return value;
+            }
             return value;
         }
         public LLVMValueRef Visit(Ast.Expr.Int i)
@@ -225,7 +254,6 @@ namespace CoalLang
             unsafe
             {
                 expr = LLVM.ConstInt(LLVM.Int32Type(), (ulong) i.Item.Value, 0);
-                this.m_valueStack.Push(expr);
             }
             return expr;
         }
@@ -235,7 +263,6 @@ namespace CoalLang
             unsafe
             {
                 expr = LLVM.ConstReal(LLVM.FloatType(), f.Item.Value);
-                this.m_valueStack.Push(expr);
             }
             return expr;
         }
@@ -250,7 +277,6 @@ namespace CoalLang
                 {
                     sbyte* sb = (sbyte*)b;
                     expr = LLVM.ConstString(sb, (uint)s.Item.Value.Length, 0);
-                    this.m_valueStack.Push(expr);
                 }
             }
             return expr;
@@ -265,7 +291,6 @@ namespace CoalLang
                 } else {
                     expr = LLVM.ConstInt(LLVM.Int1Type(), (ulong) 0, 0);
                 }
-                this.m_valueStack.Push(expr);
             }
             return expr;
         }
@@ -278,13 +303,11 @@ namespace CoalLang
             LLVMValueRef expr = null;
             return expr;
         }
+        // TODO Reorganize logic to not check type of b
         public LLVMValueRef Visit(Ast.Expr.BinOp b)
         {
-            Visit(b.Item.Lhs);
-            Visit(b.Item.Rhs);
-
-            LLVMValueRef rhs = this.m_valueStack.Pop();
-            LLVMValueRef lhs = this.m_valueStack.Pop();
+            LLVMValueRef rhs = Visit(b.Item.Lhs);
+            LLVMValueRef lhs = Visit(b.Item.Rhs);
 
             LLVMValueRef expr;
             unsafe
@@ -308,7 +331,6 @@ namespace CoalLang
                     {  // if (b.Item.Op.IsOpDiv) {
                         expr = this.m_builder.BuildFDiv(lhs, rhs);
                     }
-                    this.m_valueStack.Push(expr);
                 }
                 else if (b.ActualType.IsIntType)
                 {
@@ -328,7 +350,6 @@ namespace CoalLang
                     {  // if (b.Item.Op.IsOpDiv) {
                         expr = this.m_builder.BuildExactSDiv(lhs, rhs);
                     }
-                    this.m_valueStack.Push(expr);
                 }
                 // Boolean Operations
                 else if (b.ActualType.IsBoolType)
@@ -343,34 +364,65 @@ namespace CoalLang
                     }
                     else
                     {
-                        LLVMRealPredicate pred;
-                        if (b.Item.Op.IsOpLess)
+                        if (b.Item.Lhs.IsFloat)
                         {
-                            pred = LLVMRealPredicate.LLVMRealULT;
-                        }
-                        else if (b.Item.Op.IsOpGreater)
-                        {
-                            pred = LLVMRealPredicate.LLVMRealUGT;
-                        }
-                        else if (b.Item.Op.IsOpGreaterEqual)
-                        {
-                            pred = LLVMRealPredicate.LLVMRealUGE;
-                        }
-                        else if (b.Item.Op.IsOpLessEqual)
-                        {
-                            pred = LLVMRealPredicate.LLVMRealULE;
-                        }
-                        else if (b.Item.Op.IsOpEqual)
-                        {
-                            pred = LLVMRealPredicate.LLVMRealUEQ;
+                            LLVMRealPredicate pred;
+                            if (b.Item.Op.IsOpLess)
+                            {
+                                pred = LLVMRealPredicate.LLVMRealULT;
+                            }
+                            else if (b.Item.Op.IsOpGreater)
+                            {
+                                pred = LLVMRealPredicate.LLVMRealUGT;
+                            }
+                            else if (b.Item.Op.IsOpGreaterEqual)
+                            {
+                                pred = LLVMRealPredicate.LLVMRealUGE;
+                            }
+                            else if (b.Item.Op.IsOpLessEqual)
+                            {
+                                pred = LLVMRealPredicate.LLVMRealULE;
+                            }
+                            else if (b.Item.Op.IsOpEqual)
+                            {
+                                pred = LLVMRealPredicate.LLVMRealOEQ;
+                            }
+                            else
+                            {
+                                pred = LLVMRealPredicate.LLVMRealONE;
+                            }
+                            expr = this.m_builder.BuildFCmp(pred, lhs, rhs);
                         }
                         else
                         {
-                            pred = LLVMRealPredicate.LLVMRealUNE;
+                            LLVMIntPredicate pred;
+                            if (b.Item.Op.IsOpLess)
+                            {
+                                pred = LLVMIntPredicate.LLVMIntULT;
+                            }
+                            else if (b.Item.Op.IsOpGreater)
+                            {
+                                pred = LLVMIntPredicate.LLVMIntUGT;
+                            }
+                            else if (b.Item.Op.IsOpGreaterEqual)
+                            {
+                                pred = LLVMIntPredicate.LLVMIntUGE;
+                            }
+                            else if (b.Item.Op.IsOpLessEqual)
+                            {
+                                pred = LLVMIntPredicate.LLVMIntULE;
+                            }
+                            else if (b.Item.Op.IsOpEqual)
+                            {
+                                pred = LLVMIntPredicate.LLVMIntEQ;
+                            }
+                            else
+                            {
+                                pred = LLVMIntPredicate.LLVMIntNE;
+                            }
+                            expr = this.m_builder.BuildICmp(pred, lhs, rhs);
                         }
-                        expr = this.m_builder.BuildFCmp(pred, lhs, rhs);
                     }
-                    this.m_valueStack.Push(expr);
                 }
                 else
                 {
@@ -382,12 +434,12 @@ namespace CoalLang
         }
         public LLVMValueRef Visit(Ast.Expr.UnOp u)
         {
-            Visit(u.Item.Lhs);
-            LLVMValueRef operand = this.m_valueStack.Pop();
+            LLVMValueRef operand = Visit(u.Item.Lhs);
 
             LLVMValueRef expr;
             unsafe
             {
+
                 if (u.Item.Op.IsOpBoolNegate)
                 {
                     expr = this.m_builder.BuildNot(operand);
@@ -398,25 +450,25 @@ namespace CoalLang
                 }
                 else if (u.Item.Op.IsOpIncr && u.Item.ActualType.IsIntType)
                 {
-                    expr = this.m_builder.BuildAdd(operand, LLVM.ConstReal(LLVM.Int32Type(), 1));
+                    expr = this.m_builder.BuildAdd(operand, LLVM.ConstInt(LLVM.Int32Type(), 1, 0));
                 }
                 else if (u.Item.Op.IsOpIncr && u.Item.ActualType.IsFloatType)
                 {
-                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.Int32Type(), 1));
+                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.FloatType(), 1));
                 }
                 else if (u.Item.Op.IsOpDecr && u.Item.ActualType.IsIntType)
                 {
-                    expr = this.m_builder.BuildAdd(operand, LLVM.ConstReal(LLVM.Int32Type(), -1));
+                    expr = this.m_builder.BuildAdd(operand, LLVM.ConstInt(LLVM.Int32Type(), 0xFFFFFFFF, 0));
                 }
                 else if (u.Item.Op.IsOpDecr && u.Item.ActualType.IsFloatType)
                 {
-                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.Int32Type(), -1));
+                    expr = this.m_builder.BuildFAdd(operand, LLVM.ConstReal(LLVM.FloatType(), -1));
                 }
                 else
                 {
                     expr = null;
                 }
-                this.m_valueStack.Push(expr);
+                this.m_builder.BuildStore(expr, operand);
             }
             return expr;
         }

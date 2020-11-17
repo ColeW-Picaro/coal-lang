@@ -21,7 +21,11 @@ false && false;
 2 / 2;
 2 * 2;
 ((1 + 2) - (5 - 1)) * 7;
-let a : int = 1;
-let b : int = 2;
-let c : int = a + b;
+
+let a : int = 2;
+let b : int = 3;
+let add (a : int, b : int) : int do
+  return a + b;
+end
+let c : int = add (a, b);
 return 0;
