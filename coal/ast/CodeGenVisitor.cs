@@ -103,20 +103,27 @@ namespace CoalLang
         }
         public void Visit(Ast.Stmt.While w)
         {
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
+            // Build basic blocks
             var func = this.m_funcStack.Peek();
             var loopBB = func.AppendBasicBlock("loop");
             var exitBB = func.AppendBasicBlock("exit");
             var bodyBB = func.AppendBasicBlock("body");
+
+            // Loop test
             this.m_builder.BuildBr(loopBB);
             this.m_builder.PositionAtEnd(loopBB);
+
             // Cond
             LLVMValueRef cond = Visit(w.Item.Cond);
             this.m_builder.BuildCondBr(cond, bodyBB, exitBB);
             this.m_builder.PositionAtEnd(bodyBB);
+
             //  Body
             Visit(w.Item.Body);
             this.m_builder.BuildBr(loopBB);
             this.m_builder.PositionAtEnd(exitBB);
+            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
           
         }
         public void Visit(Ast.Stmt.Seq s)
@@ -126,30 +133,38 @@ namespace CoalLang
             {
                 Visit(v);
             }
-            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
+            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
         }
         public void Visit(Ast.Stmt.IfThenElse i)
         {
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
             unsafe
             {
                 // Cond
                 LLVMValueRef cond = Visit(i.Item.Cond);
+                // Build Basic Blocks and the branch instruction
                 var func = this.m_funcStack.Peek();
                 var bodyBB = func.AppendBasicBlock("body");
                 var elseBB = func.AppendBasicBlock("else");
                 var contBB = func.AppendBasicBlock("cont");
                 this.m_builder.BuildCondBr(cond, bodyBB, elseBB);
+
+                // Body
                 this.m_builder.PositionAtEnd(bodyBB);
                 Visit(i.Item.Body);
                 this.m_builder.BuildBr(contBB);
+
+                // Else
                 this.m_builder.PositionAtEnd(elseBB);
                 if (i.Item.ElseBody != null)
                 {
                     Visit(i.Item.ElseBody.Value);
                 }
                 this.m_builder.BuildBr(contBB);
+
                 this.m_builder.PositionAtEnd(contBB);
             }
+            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
         }
         public void Visit(Ast.Stmt.Vardef v)
         {
@@ -184,7 +199,9 @@ namespace CoalLang
                     string s = (v.Item.Expr.Value.ToString());
                     def = this.m_builder.BuildGlobalString(s);
                 }
+
                 this.m_namedValues[this.m_namedValues.Count - 1].Add(v.Item.Formal.Name, def);
+
                 if (expr != null)
                 {
                     this.m_builder.BuildStore(def, expr);
@@ -209,6 +226,9 @@ namespace CoalLang
         }
         public void Visit(Ast.Stmt.Funcdef f)
         {
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
+
+            // Build the Function Type with return type and param list
             LLVMTypeRef type = typeToLLVMType(f.Item.Formal.Type);
             LLVMTypeRef[] paramTypes = new LLVMTypeRef[f.Item.FormalList.Length];
             for (int i = 0; i < f.Item.FormalList.Length; ++i)
@@ -217,17 +237,23 @@ namespace CoalLang
             }
             LLVMTypeRef funcType = LLVMTypeRef.CreateFunction(type, paramTypes, false);
             LLVMValueRef func = this.m_module.AddFunction(f.Item.Formal.Name, funcType);
-            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
+            this.m_funcStack.Push(func);
+            // Add paramaters to the named values
             for (int i = 0; i < f.Item.FormalList.Length; ++i)
             {
                 this.m_namedValues[this.m_namedValues.Count - 1].Add(f.Item.FormalList[i].Formal.Name, func.Params[i]);
             }
+            // keep track of previous block
             var insert = this.m_builder.InsertBlock;
+
+            // Build the body
             var body = func.AppendBasicBlock($"body_{f.Item.Formal.Name}");
             this.m_builder.PositionAtEnd(body);
             Visit(f.Item.Body);
+            // Cleanup
             this.m_builder.PositionAtEnd(insert);
             this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
+            this.m_funcStack.Pop();
         }
         public void Visit(Ast.Stmt.Expr e)
         {
@@ -242,9 +268,10 @@ namespace CoalLang
         public LLVMValueRef Visit(Ast.Expr.VarRef vr)
         {
             LLVMValueRef value = null;
-            for(int i = this.m_namedValues.Count - 1; i --> 0;) {
+            for(int i = this.m_namedValues.Count - 1; i > 0; --i)
+            {
                 this.m_namedValues[i].TryGetValue(vr.Item.Name, out value);
-                return value;
+                if (value != null) return value;
             }
             return value;
         }
@@ -358,13 +385,13 @@ namespace CoalLang
                     {
                         expr = this.m_builder.BuildAnd(lhs, rhs);
                     }
-                   else if (b.Item.Op.IsOpOr)
+                    else if (b.Item.Op.IsOpOr)
                     {
                         expr = this.m_builder.BuildOr(lhs, rhs);
                     }
                     else
                     {
-                        if (b.Item.Lhs.IsFloat)
+                        if (b.Item.Lhs.ActualType.IsFloatType)
                         {
                             LLVMRealPredicate pred;
                             if (b.Item.Op.IsOpLess)
@@ -420,6 +447,7 @@ namespace CoalLang
                             {
                                 pred = LLVMIntPredicate.LLVMIntNE;
                             }
+                            // TODO BROKEN
                             expr = this.m_builder.BuildICmp(pred, lhs, rhs);
                         }
                     }
