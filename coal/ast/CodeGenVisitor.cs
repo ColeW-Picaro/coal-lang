@@ -3,11 +3,6 @@ using System.Text;
 using LLVMSharp.Interop;
 
 
-// Var dec (int, float, bool), string
-// Assignment
-// Bool expr
-// Int arithmetic
-// Float arithmetic
 namespace CoalLang
 {
     public class CodeGenVisitor
@@ -50,6 +45,7 @@ namespace CoalLang
             m_builder.BuildRetVoid();
             m_builder.PositionAtEnd(entry);
             m_builder.BuildBr(body);
+            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
             System.Console.WriteLine(this.m_module);
         }
         // Visit methods for every relevant Ast type
@@ -253,7 +249,8 @@ namespace CoalLang
             // Cleanup
             this.m_builder.PositionAtEnd(insert);
             this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
-            this.m_funcStack.Pop();
+            // This doesn't work for scope :/
+            //this.m_funcStack.Pop();
         }
         public void Visit(Ast.Stmt.Expr e)
         {
@@ -267,13 +264,14 @@ namespace CoalLang
         // Expr
         public LLVMValueRef Visit(Ast.Expr.VarRef vr)
         {
-            LLVMValueRef value = null;
-            for(int i = this.m_namedValues.Count - 1; i > 0; --i)
+            LLVMValueRef value;
+            for(int i = this.m_namedValues.Count - 1; i >= 0; --i)
             {
-                this.m_namedValues[i].TryGetValue(vr.Item.Name, out value);
+                var d = this.m_namedValues[i];
+                d.TryGetValue(vr.Item.Name, out value);
                 if (value != null) return value;
             }
-            return value;
+            return null;
         }
         public LLVMValueRef Visit(Ast.Expr.Int i)
         {
@@ -323,11 +321,23 @@ namespace CoalLang
         }
         public LLVMValueRef Visit(Ast.Expr.FuncCall f)
         {
+            LLVMValueRef[] args = new LLVMValueRef[f.Item.ExprList.Length];
+            int arg = 0;
             foreach (var e in f.Item.ExprList)
             {
-                Visit(e);
+                LLVMValueRef v = Visit(e);
+                args[arg] = v;
+                ++arg;
             }
-            LLVMValueRef expr = null;
+
+            LLVMValueRef fn = null;
+            foreach (var func in this.m_funcStack) {
+
+                if (f.Item.Name == func.Name) {
+                    fn = func;
+                }
+            }
+            LLVMValueRef expr = this.m_builder.BuildCall(fn, args);
             return expr;
         }
         // TODO Reorganize logic to not check type of b

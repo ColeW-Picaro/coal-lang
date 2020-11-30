@@ -4,11 +4,12 @@ let add (a : int, b : int) : int do
   return a + b;
 end
 
-let max (a : float, b : float) : float do
+let max (a : int, b : int) : int do
   if (a > b)
     return a;
   else
     return b;
 end
 
+max(a, b);
 return 0;
