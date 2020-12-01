@@ -41,7 +41,6 @@ namespace CoalLang
             m_builder.PositionAtEnd(body);
             this.m_funcStack.Push(func);
             Visit(this.m_prog);
-            this.m_funcStack.Pop();
             m_builder.BuildRetVoid();
             m_builder.PositionAtEnd(entry);
             m_builder.BuildBr(body);
@@ -94,12 +93,12 @@ namespace CoalLang
             // RHS
             LLVMValueRef rhs = Visit(a.Item.Rhs);
             // LHS
-            LLVMValueRef lhs = Visit(a.Item.Lhs);
-            LLVMValueRef assign = this.m_builder.BuildStore(lhs, rhs);
+            LLVMValueRef lhs = VisitRef((Ast.Expr.VarRef) a.Item.Lhs, false);
+            LLVMValueRef assign = this.m_builder.BuildStore(rhs, lhs);
+
         }
         public void Visit(Ast.Stmt.While w)
         {
-            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
             // Build basic blocks
             var func = this.m_funcStack.Peek();
             var loopBB = func.AppendBasicBlock("loop");
@@ -119,8 +118,7 @@ namespace CoalLang
             Visit(w.Item.Body);
             this.m_builder.BuildBr(loopBB);
             this.m_builder.PositionAtEnd(exitBB);
-            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
-          
+         
         }
         public void Visit(Ast.Stmt.Seq s)
         {
@@ -133,7 +131,6 @@ namespace CoalLang
         }
         public void Visit(Ast.Stmt.IfThenElse i)
         {
-            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef> ());
             unsafe
             {
                 // Cond
@@ -160,7 +157,6 @@ namespace CoalLang
 
                 this.m_builder.PositionAtEnd(contBB);
             }
-            this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
         }
         public void Visit(Ast.Stmt.Vardef v)
         {
@@ -190,17 +186,16 @@ namespace CoalLang
                 {
                     def = tmpB.BuildAlloca(LLVMTypeRef.Int1, v.Item.Formal.Name);
                 }
-                else if (v.Item.Expr.Value.IsString)
+                else if (v.Item.Formal.Type.IsStringType)
                 {
-                    string s = (v.Item.Expr.Value.ToString());
-                    def = this.m_builder.BuildGlobalString(s);
+                    def = tmpB.BuildAlloca(LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0), v.Item.Formal.Name);
                 }
 
                 this.m_namedValues[this.m_namedValues.Count - 1].Add(v.Item.Formal.Name, def);
 
                 if (expr != null)
                 {
-                    this.m_builder.BuildStore(def, expr);
+                    this.m_builder.BuildStore(expr, def);
                 }
             }
             tmpB.Dispose();
@@ -217,13 +212,13 @@ namespace CoalLang
                 return LLVMTypeRef.Int32;
             else if (t.IsFloatType)
                 return LLVMTypeRef.Float;
+            else if (t.IsStringType)
+                return LLVMTypeRef.CreatePointer(LLVMTypeRef.Int8, 0);
             else
                 return LLVMTypeRef.Void;
         }
         public void Visit(Ast.Stmt.Funcdef f)
         {
-            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
-
             // Build the Function Type with return type and param list
             LLVMTypeRef type = typeToLLVMType(f.Item.Formal.Type);
             LLVMTypeRef[] paramTypes = new LLVMTypeRef[f.Item.FormalList.Length];
@@ -233,6 +228,8 @@ namespace CoalLang
             }
             LLVMTypeRef funcType = LLVMTypeRef.CreateFunction(type, paramTypes, false);
             LLVMValueRef func = this.m_module.AddFunction(f.Item.Formal.Name, funcType);
+            this.m_namedValues[this.m_namedValues.Count - 1].Add(f.Item.Formal.Name, func);
+            this.m_namedValues.Add(new Dictionary<string, LLVMValueRef>());
             this.m_funcStack.Push(func);
             // Add paramaters to the named values
             for (int i = 0; i < f.Item.FormalList.Length; ++i)
@@ -250,7 +247,7 @@ namespace CoalLang
             this.m_builder.PositionAtEnd(insert);
             this.m_namedValues.RemoveAt(this.m_namedValues.Count - 1);
             // This doesn't work for scope :/
-            //this.m_funcStack.Pop();
+            this.m_funcStack.Pop();
         }
         public void Visit(Ast.Stmt.Expr e)
         {
@@ -262,14 +259,18 @@ namespace CoalLang
             this.m_builder.BuildRet(retval);
         }
         // Expr
-        public LLVMValueRef Visit(Ast.Expr.VarRef vr)
+        public LLVMValueRef VisitRef(Ast.Expr.VarRef vr, bool isRhs = true)
         {
             LLVMValueRef value;
             for(int i = this.m_namedValues.Count - 1; i >= 0; --i)
             {
                 var d = this.m_namedValues[i];
                 d.TryGetValue(vr.Item.Name, out value);
-                if (value != null) return value;
+                if (value != null) {
+                    if (value.IsAAllocaInst != null && isRhs)
+                        return this.m_builder.BuildLoad(value);
+                    return value;
+                }
             }
             return null;
         }
@@ -293,18 +294,12 @@ namespace CoalLang
         }
         public LLVMValueRef Visit(Ast.Expr.String s)
         {
-            LLVMValueRef expr;
-            unsafe
-            {
-                // https://stackoverflow.com/questions/5666073/c-converting-string-to-sbyte
-                byte[] bytes = Encoding.ASCII.GetBytes(s.Item.Value);
-                fixed (byte* b = bytes)
-                {
-                    sbyte* sb = (sbyte*)b;
-                    expr = LLVM.ConstString(sb, (uint)s.Item.Value.Length, 0);
-                }
+            unsafe {
+                var str = this.m_builder.BuildGlobalString(s.Item.Value);
+                LLVMValueRef[] ind = { LLVM.ConstInt(LLVMTypeRef.Int32, 0, 0), LLVM.ConstInt(LLVMTypeRef.Int32, (ulong) s.Size, 0) };
+                return this.m_builder.BuildGEP(str, ind);
             }
-            return expr;
+
         }
         public LLVMValueRef Visit(Ast.Expr.Bool b)
         {
@@ -331,11 +326,10 @@ namespace CoalLang
             }
 
             LLVMValueRef fn = null;
-            foreach (var func in this.m_funcStack) {
-
-                if (f.Item.Name == func.Name) {
-                    fn = func;
-                }
+            for(int i = this.m_namedValues.Count - 1; i >= 0; --i)
+            {
+                var d = this.m_namedValues[i];
+                d.TryGetValue(f.Item.Name, out fn);
             }
             LLVMValueRef expr = this.m_builder.BuildCall(fn, args);
             return expr;
@@ -457,7 +451,6 @@ namespace CoalLang
                             {
                                 pred = LLVMIntPredicate.LLVMIntNE;
                             }
-                            // TODO BROKEN
                             expr = this.m_builder.BuildICmp(pred, lhs, rhs);
                         }
                     }
@@ -472,7 +465,7 @@ namespace CoalLang
         }
         public LLVMValueRef Visit(Ast.Expr.UnOp u)
         {
-            LLVMValueRef operand = Visit(u.Item.Lhs);
+            LLVMValueRef operand = VisitRef((Ast.Expr.VarRef) u.Item.Lhs, false);
 
             LLVMValueRef expr;
             unsafe
@@ -515,7 +508,7 @@ namespace CoalLang
             switch (e)
             {
                 case Ast.Expr.VarRef v:
-                    return Visit(v);
+                    return VisitRef(v);
                 case Ast.Expr.Int i:
                     return Visit(i);
                 case Ast.Expr.Float f:

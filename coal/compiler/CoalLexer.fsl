@@ -35,7 +35,9 @@ rule read =
   | comment  { newline lexbuf; read lexbuf }
   | int      { INT_LIT (int (lexeme lexbuf)) }
   | float    { FLOAT_LIT (float (lexeme lexbuf)) }
-  | str      { STRING_LIT (string (lexeme lexbuf)) }
+  | str      { let s = string (lexeme lexbuf) in
+               let s = s.Substring(1, s.Length - 2) in
+               STRING_LIT (s) }
   | "true"   { BOOL_LIT (true) }
   | "false"  { BOOL_LIT (false) }  
   | "string" { STRING }    

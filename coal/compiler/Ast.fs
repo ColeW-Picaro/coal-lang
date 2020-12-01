@@ -89,6 +89,10 @@ module rec Ast =
     | BinOp of BinOpType
     | UnOp of UnOpType
 
+    member this.Size with get () =
+        match this with
+            | String s -> s.Value.Length
+            | _ -> 1
     member this.ActualType with get () =
         match this with
           | VarRef v -> v.ActualType
