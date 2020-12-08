@@ -1,10 +1,29 @@
 using System.Collections.Generic;
 using System.Text;
 using LLVMSharp.Interop;
+using System.Linq;
 
 
 namespace CoalLang
 {
+    public static class Extensions
+    {
+        public static IEnumerable<(T item, int index)> WithIndex<T>(this IEnumerable<T> self)
+            => self.Select((item, index) => (item, index));
+
+        public unsafe static sbyte* ToCString(this string str)
+        {
+            if (str == "")
+            {
+                fixed (sbyte* ptr = new[] { (sbyte)'\0' })
+                    return ptr;
+            }
+
+            fixed (byte* ptr = &Encoding.Default.GetBytes(str)[0])
+                return (sbyte*)ptr;
+        }
+    }
+
     public class CodeGenVisitor
     {
         Ast.Prog m_prog;
@@ -28,6 +47,36 @@ namespace CoalLang
                 this.m_builder = LLVM.CreateBuilder();
             }
             this.Visit();
+            this.Gen();
+        }
+
+
+        public void Gen() {
+
+            unsafe {
+                LLVM.InitializeNativeTarget();
+                LLVM.InitializeNativeAsmPrinter();
+
+                sbyte* errorMessage;
+                LLVMTarget* target;
+                int code = LLVM.GetTargetFromTriple(
+                                                 LLVM.GetDefaultTargetTriple(),
+                                                 &target,
+                                                 &errorMessage
+                                                 );
+                System.Console.WriteLine(code);
+                LLVMTargetMachineRef targetMachine = LLVM.CreateTargetMachine(
+                                                                              target,
+                                                                              LLVM.GetDefaultTargetTriple(),
+                                                                              LLVM.GetHostCPUName(),
+                                                                              LLVM.GetHostCPUFeatures(),
+                                                                              LLVMCodeGenOptLevel.LLVMCodeGenLevelNone,
+                                                                              LLVMRelocMode.LLVMRelocDefault,
+                                                                              LLVMCodeModel.LLVMCodeModelDefault
+                                                                              );
+                this.m_module.Verify(LLVMVerifierFailureAction.LLVMPrintMessageAction);
+                targetMachine.EmitToFile(this.m_module, "asm.S", LLVMCodeGenFileType.LLVMAssemblyFile);
+            }
         }
 
         public void Visit()
@@ -465,7 +514,7 @@ namespace CoalLang
         }
         public LLVMValueRef Visit(Ast.Expr.UnOp u)
         {
-            LLVMValueRef operand = VisitRef((Ast.Expr.VarRef) u.Item.Lhs, false);
+            LLVMValueRef operand = VisitRef((Ast.Expr.VarRef) u.Item.Lhs);
 
             LLVMValueRef expr;
             unsafe

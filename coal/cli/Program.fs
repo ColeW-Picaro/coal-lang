@@ -3,6 +3,7 @@ open FSharp.Text.Lexing
 open Lexer
 open Parser
 open CoalLang
+open System.IO
 
 let parse (filename:string) = 
     use textReader = new System.IO.StreamReader(filename)

@@ -4,10 +4,11 @@ let name : string = "cole";
 let nameab : string = name;
 
 let max (a : int, b : int) : int do
+  let c : int = b;
   if (a > b)
-    return a;
-  else
-    return b;
+    c = a;
+  return c;
+
 end
 let m : int = max(a, b);
 
