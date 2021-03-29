@@ -3,6 +3,7 @@ open FSharp.Text.Lexing
 open Lexer
 open Parser
 open CoalLang
+open System.IO
 
 let parse (filename:string) = 
     use textReader = new System.IO.StreamReader(filename)
@@ -15,4 +16,8 @@ let main argv =
     let tree = parse argv.[0] in
     let st = SymbolTable tree in 
     let stv = SymbolTableVisitor st in
+    let tcv = TypeCheckingVisitor tree in
+    let cgv = CodeGenVisitor tree in
+    stv.printErrorList();
+    tcv.printErrorList();
     0

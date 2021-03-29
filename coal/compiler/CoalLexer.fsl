@@ -16,11 +16,11 @@ let newline (lexbuf: LexBuffer<_>) =
 
 }
 
-let int = ['-' '+']? ['0'-'9']+
+let int = ['0'-'9']+
 let digit = ['0'-'9']
 let frac = '.' digit*
 let exp = ['e' 'E'] ['-' '+']? digit+
-let float = '-'? digit* frac? exp?
+let float = digit* frac? exp?
 let str = '"' [^'"']* '"'
 let id = ['A'-'Z' 'a'-'z'] ['A'-'Z' 'a'-'z' '0'-'9' '_']*
 
@@ -35,7 +35,9 @@ rule read =
   | comment  { newline lexbuf; read lexbuf }
   | int      { INT_LIT (int (lexeme lexbuf)) }
   | float    { FLOAT_LIT (float (lexeme lexbuf)) }
-  | str      { STRING_LIT (string (lexeme lexbuf)) }
+  | str      { let s = string (lexeme lexbuf) in
+               let s = s.Substring(1, s.Length - 2) in
+               STRING_LIT (s) }
   | "true"   { BOOL_LIT (true) }
   | "false"  { BOOL_LIT (false) }  
   | "string" { STRING }    
@@ -73,6 +75,8 @@ rule read =
   | ':'      { COLON }
   | ','      { COMMA }
   | '.'      { DOT }
+  | "++"     { PLUS_PLUS }
+  | "--"     { MINUS_MINUS }
   | '/'      { SLASH }
   | '*'      { STAR }
   | '-'      { MINUS }

@@ -1,8 +1,6 @@
-using System.Reflection.Metadata;
-using System.Runtime.InteropServices.ComTypes;
-using System.Text.RegularExpressions;
-using System.Collections.Generic;
 using Microsoft.FSharp.Core;
+using Microsoft.FSharp.Collections;
+using System.Collections.Generic;
 
 using Optional;
 
@@ -10,14 +8,25 @@ namespace CoalLang
 {
   public class SymbolTableVisitor : IVisitor
   {
+    public Stack<Ast.Stmt.Funcdef> m_FunctionStack;
     public SymbolTable m_symbolTable;
+    List<string> m_errorList;
     public SymbolTableVisitor(SymbolTable st) {
+      this.m_FunctionStack = new Stack<Ast.Stmt.Funcdef>();
+      this.m_errorList = new List<string>();
       this.m_symbolTable = st;
       // Visits
       Visit();
     }
 
+    public void printErrorList() {
+        foreach (var e in m_errorList) {
+            System.Console.WriteLine(e);
+        }
+    }
+
     public void Visit() {
+      // Go through $global space
       foreach(var s in this.m_symbolTable.m_prog.Item) {
         switch (s) {
           case Ast.Stmt.Vardef v:
@@ -73,31 +82,30 @@ namespace CoalLang
     }
     public void Visit(Ast.Stmt.Assign a)
     {
-      Visit(a.Item2);
+      Visit(a.Item.Lhs);
+      Visit(a.Item.Rhs);
     }
     public void Visit(Ast.Stmt.While w)
     {
-      // Cond
-      Visit(w.Item1);
-      // Body
-      Visit(w.Item2);
+      Visit(w.Item.Cond);
+      Visit(w.Item.Body);
     }
     public void Visit(Ast.Stmt.Seq s) { 
       // Seqs introduce scope
       this.m_symbolTable.PushNewScope();
-      foreach (var v in s.Item) {
+      foreach (var v in s.Item.Body) {
         Visit(v);
       }
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.IfThenElse i) { 
       // Cond
-      Visit(i.Item1);
+      Visit(i.Item.Body);
       // If body
-      Visit(i.Item2);
+      Visit(i.Item.Cond);
       // Else body
-      if (i.Item3 != null) {
-        Visit(i.Item3.Value);
+      if (i.Item.ElseBody != null) {
+        Visit(i.Item.ElseBody.Value);
       }
     }
     public void Visit(Ast.Stmt.Vardef v) { 
@@ -106,7 +114,9 @@ namespace CoalLang
         Visit(v.Item.Expr.Value);
       }
     }
-    public void Visit(Ast.Stmt.Funcdef f) { 
+    public void Visit(Ast.Stmt.Funcdef f) {
+      this.m_FunctionStack.Push(f);
+      //System.Console.WriteLine("Push " + f);
       this.m_symbolTable.Insert(f.Item.Formal.Name, f);
       // Add formal params to defs
       this.m_symbolTable.PushNewScope();
@@ -115,20 +125,32 @@ namespace CoalLang
         this.m_symbolTable.Insert(vd.Item.Formal.Name, vd);
       }
       Visit(f.Item.Body);
+      this.m_FunctionStack.Pop();
+      //System.Console.WriteLine("Pop " + f);
       this.m_symbolTable.PopScope();
     }
     public void Visit(Ast.Stmt.Expr e) {
-      Visit(e.Item);
+      Visit(e.Item.Expr);
     }
     public void Visit(Ast.Stmt.Return r) { 
-      Visit(r.Item.Value);
+      Visit(r.Item.Expr.Value);
+      if (this.m_FunctionStack.Count == 0) {
+        r.Item.Decl = (Ast.Stmt.Funcdef) Ast.Stmt.Funcdef.NewFuncdef(new Ast.FuncdefType(new System.Tuple<Ast.Formal, FSharpList<Ast.VardefType>, Ast.Stmt>(new Ast.Formal("$global", Ast.Type.IntType), null, null)));
+        // FuncionStack is no longer needed, anything after returning $global is not allowed
+      } else {
+        r.Item.Decl = this.m_FunctionStack.Peek();
+      }
+      Ast.Stmt.Funcdef fd = (Ast.Stmt.Funcdef) r.Item.Decl.Value;
+      //System.Console.WriteLine("Return " + fd.Item.Formal.Name);
     }
     // Expr
     public void Visit(Ast.Expr.VarRef vr) { 
       // Find the corresponding vardef in symbol table
       Option<Ast.Stmt> vd = this.m_symbolTable.Find(vr.Item.Name);
-      vd.MatchSome(v => vr.Item.Decl = v);
-      System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
+      vd.Match(v => vr.Item.Decl = v,
+               () => this.m_errorList.Add("Symbol Error: No matching symbol table entry for variable " +
+                                          vr.Item.Name));
+      //System.Console.WriteLine("Reference to " + vr.Item.Name + " " + vr.Item.Decl);
     }
     public void Visit(Ast.Expr.Int i) { 
       
@@ -144,15 +166,20 @@ namespace CoalLang
     }
     public void Visit(Ast.Expr.FuncCall f) {
       Option<Ast.Stmt> fd = this.m_symbolTable.Find(f.Item.Name);
-      fd.MatchSome(funcdef => f.Item.Decl = funcdef);
-      System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
+      fd.Match(funcdef => f.Item.Decl = funcdef,
+               () => this.m_errorList.Add("Symbol Error: No matching symbol table entry for function " +
+                                          f.Item.Name));
+      //System.Console.WriteLine("Reference to function " + f.Item.Name + " " + f.Item.Decl);
+      foreach (var e in f.Item.ExprList) {
+        Visit(e);
+      }
     }
     public void Visit(Ast.Expr.BinOp b) { 
-      Visit(b.Item1);
-      Visit(b.Item3);
+      Visit(b.Item.Lhs);
+      Visit(b.Item.Rhs);
     }
     public void Visit(Ast.Expr.UnOp u) { 
-      Visit(u.Item2);
+      Visit(u.Item.Lhs);
     }
     private void Visit(Ast.Expr e)
     {

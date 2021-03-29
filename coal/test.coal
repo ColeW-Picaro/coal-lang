@@ -1,19 +1,19 @@
-let min (a:int, b:int) : int do
-  if (a < b)
-    a;
-  else
-    b;
-end
+let a : int = 2;
+let b : int = 3;
+let name : string = "cole";
+let nameab : string = name;
 
-let foo (a:int) : int do
-    let sum : int = a + a;
-    let prod : int = a * a;
-    let b : int = b / 1;
-    let bar (b:int) : int do
-      a + b;
-    end
-    bar (a);
+let max (a : int, b : int) : int do
+  let c : int = b;
+  if (a > b)
+    c = a;
+  return c;
+
 end
-let c : string;
-let name : string = "Hello, world!";
-return name;
+let m : int = max(a, b);
+
+for (let i : int = 0; i < 10; ++i) m = m + i;
+
+for (let i : int = 0; i < 10; ++i) m = m + i;
+
+return 0;
