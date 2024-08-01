@@ -1,7 +1,8 @@
 **/bin
 **/obj
 **/deps
-compiler/Lexer.fs
-compiler/Parser.fs
-compiler/Parser.fsi
-compiler/Parser.fsyacc.output
+compiler/CoalLexer.fs
+compiler/CoalLexer.fsi
+compiler/CoalParser.fs
+compiler/CoalParser.fsi
+compiler/CoalParser.fsyacc.output

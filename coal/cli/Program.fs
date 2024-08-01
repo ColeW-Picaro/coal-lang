@@ -1,18 +1,16 @@
 ﻿module Program
 open FSharp.Text.Lexing
-open Lexer
-open Parser
 open CoalLang
 open System.IO
 
-let parse (filename:string) = 
-    use textReader = new System.IO.StreamReader(filename)
+let parse (filename:string) =
+    use textReader = new StreamReader(filename)
     let lexbuf = LexBuffer<char>.FromTextReader textReader
     let res = Parser.start Lexer.read lexbuf in
     res
 
 [<EntryPoint>]
-let main argv =    
+let main argv =
     let tree = parse argv.[0] in
     let st = SymbolTable tree in 
     let stv = SymbolTableVisitor st in
@@ -20,4 +18,5 @@ let main argv =
     let cgv = CodeGenVisitor tree in
     stv.printErrorList();
     tcv.printErrorList();
+    cgv.Gen();
     0

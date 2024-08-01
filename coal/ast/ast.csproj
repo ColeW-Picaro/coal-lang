@@ -2,25 +2,24 @@
 
   <ItemGroup>
     <Reference Include="compiler.dll">
-      <HintPath>..\compiler\bin\Debug\netcoreapp3.1\compiler.dll</HintPath>
+      <HintPath>..\compiler\bin\Debug\net8.0\compiler.dll</HintPath>
     </Reference>
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="FSharp.Core" Version="4.7.0.0" />
-    <PackageReference Include="LLVMSharp" Version="10.0.0-beta" />
+    <PackageReference Include="FSharp.Core" Version="8.0.100" />
+    <PackageReference Include="LLVMSharp" Version="16.0.0" />
     <PackageReference Include="Optional" Version="4.0.0" />
-    <PackageReference Include="libLLVM" Version="10.0.0" />
+    <PackageReference Include="libLLVM" Version="16.0.6" />
     <PackageReference Include="System.Memory" Version="4.5.4" />
   </ItemGroup>
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
   </PropertyGroup>
 
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-
 
 </Project>
