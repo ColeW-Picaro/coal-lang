@@ -18,5 +18,4 @@ let main argv =
     let cgv = CodeGenVisitor tree in
     stv.printErrorList();
     tcv.printErrorList();
-    cgv.Gen();
     0
